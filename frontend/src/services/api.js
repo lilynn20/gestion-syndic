@@ -121,4 +121,16 @@ export const notificationService = {
   generateOverdue: () => api.post('/notifications/generate-overdue'),
 };
 
+// Search
+export const searchService = {
+  search: (query) => api.get('/search', { params: { q: query } }),
+};
+
+// Settings
+export const settingsService = {
+  getAll: () => api.get('/settings'),
+  update: (data) => api.put('/settings', data),
+  get: (key) => api.get(`/settings/${key}`),
+};
+
 export default api;

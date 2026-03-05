@@ -9,6 +9,8 @@ import {
   TrendingDown,
   Wallet,
   Check,
+  Download,
+  Printer,
 } from 'lucide-react';
 import {
   LineChart,
@@ -66,6 +68,48 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    if (!tableau?.tableau || !tableau?.colonnes) return;
+    
+    // Build CSV header
+    const headers = ['Bien', 'Type', 'Propriétaire', ...tableau.colonnes.map(c => c.label), 'Total'];
+    
+    // Build CSV rows
+    const rows = tableau.tableau.map(ligne => {
+      const monthStatuses = tableau.colonnes.map(col => {
+        const moisData = ligne.mois[col.key];
+        if (moisData?.statut === 'non_applicable') return '-';
+        if (moisData?.paye) return 'Payé';
+        if (moisData?.statut === 'en_retard') return 'Retard';
+        return 'Non payé';
+      });
+      return [ligne.numero, ligne.type, ligne.proprietaire, ...monthStatuses, `${ligne.total_paye} DH`];
+    });
+    
+    // Add totals row
+    const totalsRow = ['Total', '', '', ...tableau.colonnes.map(c => tableau.totaux_par_mois?.[c.key] || 0), `${tableau.total_general || 0} DH`];
+    rows.push(totalsRow);
+    
+    // Create CSV content
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(';'))
+      .join('\n');
+    
+    // Add BOM for Excel to recognize UTF-8
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `paiements_${anneeDebut}-${anneeFin}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const StatCard = ({ title, value, icon: Icon, iconBg, subtext }) => (
@@ -288,11 +332,27 @@ const Dashboard = () => {
       </div>
 
       {/* Tableau des paiements */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border-0">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between print:hidden">
           <h2 className="text-sm font-medium text-slate-800">
             Suivi des paiements {anneeDebut === anneeFin ? anneeDebut : `${anneeDebut} - ${anneeFin}`}
           </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Exporter CSV
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Imprimer
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

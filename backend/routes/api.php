@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\DepenseController;
 use App\Http\Controllers\Api\RecuController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SettingController;
 
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
@@ -22,6 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/password', [AuthController::class, 'updatePassword']);
+
+    // Search
+    Route::get('/search', [SearchController::class, 'search']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -62,6 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/generate-overdue', [NotificationController::class, 'generateOverdueNotifications']);
     Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
+
+    // Settings
+    Route::get('/settings', [SettingController::class, 'index']);
+    Route::put('/settings', [SettingController::class, 'update']);
+    Route::get('/settings/{key}', [SettingController::class, 'show']);
 });
 
 // Route publique pour télécharger le PDF (avec token en query param)

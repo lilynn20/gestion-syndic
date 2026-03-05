@@ -33,3 +33,64 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide sidebar and header */
+  aside,
+  header,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Reset main content margins */
+  .lg\\:ml-56 {
+    margin-left: 0 !important;
+  }
+
+  /* Full width table */
+  main {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Table styling for print */
+  table {
+    font-size: 10px !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    padding: 4px 6px !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Ensure colors print */
+  .bg-green-50 {
+    background-color: #ecfdf5 !important;
+  }
+
+  .bg-red-50 {
+    background-color: #fef2f2 !important;
+  }
+
+  .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+  }
+
+  /* Print header */
+  .print\\:block {
+    display: block !important;
+  }
+
+  /* Page breaks */
+  .bg-white {
+    page-break-inside: avoid;
+  }
+}

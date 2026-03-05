@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { notificationService } from '../services/api';
+import { notificationService, searchService } from '../services/api';
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +17,8 @@ import {
   Check,
   RefreshCw,
   AlertCircle,
+  Loader2,
+  Settings,
 } from 'lucide-react';
 
 const menuItems = [
@@ -26,6 +28,7 @@ const menuItems = [
   { path: '/paiements', icon: CreditCard, label: 'Paiements' },
   { path: '/frais', icon: Receipt, label: 'Frais' },
   { path: '/depenses', icon: Wallet, label: 'Dépenses' },
+  { path: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
 const Layout = ({ children }) => {
@@ -34,7 +37,13 @@ const Layout = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const notifRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchTimeout = useRef(null);
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,10 +60,43 @@ const Layout = ({ children }) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setNotifOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close search on navigation
+  useEffect(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, [location.pathname]);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    
+    if (query.length < 2) {
+      setSearchResults(null);
+      setSearchOpen(false);
+      return;
+    }
+    
+    setSearchLoading(true);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const response = await searchService.search(query);
+        setSearchResults(response.data.data);
+        setSearchOpen(true);
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
 
   const loadUnreadCount = async () => {
     try {
@@ -201,13 +243,110 @@ const Layout = ({ children }) => {
             </button>
 
             {/* Search (desktop) */}
-            <div className="hidden lg:flex items-center gap-2 flex-1 max-w-md">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                className="flex-1 text-sm text-slate-600 placeholder-slate-400 bg-transparent focus:outline-none"
-              />
+            <div className="hidden lg:block relative flex-1 max-w-md" ref={searchRef}>
+              <div className="flex items-center gap-2">
+                {searchLoading ? (
+                  <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4 text-slate-400" />
+                )}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onFocus={() => searchQuery.length >= 2 && setSearchOpen(true)}
+                  placeholder="Rechercher propriétaire, bien, dépense..."
+                  className="flex-1 text-sm text-slate-600 placeholder-slate-400 bg-transparent focus:outline-none"
+                />
+              </div>
+              
+              {/* Search Results Dropdown */}
+              {searchOpen && searchResults && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-slate-200 z-50 max-h-96 overflow-y-auto">
+                  {/* Proprietaires */}
+                  {searchResults.proprietaires?.length > 0 && (
+                    <div>
+                      <div className="px-3 py-2 bg-slate-50 text-xs font-medium text-slate-500 uppercase">
+                        Propriétaires
+                      </div>
+                      {searchResults.proprietaires.map((p) => (
+                        <Link
+                          key={`prop-${p.id}`}
+                          to={`/proprietaires`}
+                          onClick={() => setSearchOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50"
+                        >
+                          <Users className="h-4 w-4 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-800">{p.prenom} {p.nom}</p>
+                            <p className="text-xs text-slate-500">{p.email}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Biens */}
+                  {searchResults.biens?.length > 0 && (
+                    <div>
+                      <div className="px-3 py-2 bg-slate-50 text-xs font-medium text-slate-500 uppercase">
+                        Biens
+                      </div>
+                      {searchResults.biens.map((b) => (
+                        <Link
+                          key={`bien-${b.id}`}
+                          to={`/biens`}
+                          onClick={() => setSearchOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50"
+                        >
+                          <Building2 className="h-4 w-4 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-800">
+                              <span className={`px-1.5 py-0.5 text-xs rounded ${b.type === 'appartement' ? 'bg-slate-100' : 'bg-teal-50 text-teal-700'}`}>
+                                {b.type === 'appartement' ? 'App' : 'Mag'}
+                              </span>
+                              {' '}{b.numero}
+                            </p>
+                            {b.proprietaire && (
+                              <p className="text-xs text-slate-500">{b.proprietaire.prenom} {b.proprietaire.nom}</p>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Depenses */}
+                  {searchResults.depenses?.length > 0 && (
+                    <div>
+                      <div className="px-3 py-2 bg-slate-50 text-xs font-medium text-slate-500 uppercase">
+                        Dépenses
+                      </div>
+                      {searchResults.depenses.map((d) => (
+                        <Link
+                          key={`dep-${d.id}`}
+                          to={`/depenses`}
+                          onClick={() => setSearchOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50"
+                        >
+                          <Wallet className="h-4 w-4 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-800">{d.description}</p>
+                            <p className="text-xs text-slate-500">{d.categorie} · {d.montant} DH</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* No results */}
+                  {!searchResults.proprietaires?.length && !searchResults.biens?.length && !searchResults.depenses?.length && (
+                    <div className="px-3 py-4 text-center text-sm text-slate-500">
+                      Aucun résultat pour "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right side */}

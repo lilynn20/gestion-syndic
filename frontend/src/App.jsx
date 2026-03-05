@@ -10,6 +10,7 @@ import Biens from './pages/Biens';
 import Paiements from './pages/Paiements';
 import Frais from './pages/Frais';
 import Depenses from './pages/Depenses';
+import Settings from './pages/Settings';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ function AppRoutes() {
       <Route path="/paiements" element={<PrivateRoute><Paiements /></PrivateRoute>} />
       <Route path="/frais" element={<PrivateRoute><Frais /></PrivateRoute>} />
       <Route path="/depenses" element={<PrivateRoute><Depenses /></PrivateRoute>} />
+      <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
