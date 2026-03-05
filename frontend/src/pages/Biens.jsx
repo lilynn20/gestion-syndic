@@ -10,6 +10,7 @@ import {
   Home,
   Store,
   User,
+  Calendar,
 } from 'lucide-react';
 
 const Biens = () => {
@@ -26,6 +27,7 @@ const Biens = () => {
     numero: '',
     adresse: '',
     cotisation_mensuelle: 50,
+    date_adhesion: new Date().toISOString().split('T')[0],
   });
   const [error, setError] = useState('');
 
@@ -58,6 +60,7 @@ const Biens = () => {
         numero: bien.numero,
         adresse: bien.adresse || '',
         cotisation_mensuelle: bien.cotisation_mensuelle,
+        date_adhesion: bien.date_adhesion || new Date().toISOString().split('T')[0],
       });
     } else {
       setEditingId(null);
@@ -67,6 +70,7 @@ const Biens = () => {
         numero: '',
         adresse: '',
         cotisation_mensuelle: 50,
+        date_adhesion: new Date().toISOString().split('T')[0],
       });
     }
     setError('');
@@ -209,6 +213,12 @@ const Biens = () => {
                     <span className="truncate">{bien.adresse}</span>
                   </div>
                 )}
+                {bien.date_adhesion && (
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Calendar className="h-4 w-4 text-slate-400" />
+                    <span>Depuis {new Date(bien.date_adhesion).toLocaleDateString('fr-FR')}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -305,18 +315,32 @@ const Biens = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Cotisation mensuelle (DH)
-                </label>
-                <input
-                  type="number"
-                  value={formData.cotisation_mensuelle}
-                  onChange={(e) => setFormData({ ...formData, cotisation_mensuelle: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  min="0"
-                  step="0.01"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Cotisation mensuelle (DH)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.cotisation_mensuelle}
+                    onChange={(e) => setFormData({ ...formData, cotisation_mensuelle: parseFloat(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Date d'adhésion *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date_adhesion}
+                    onChange={(e) => setFormData({ ...formData, date_adhesion: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">

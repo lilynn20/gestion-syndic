@@ -13,15 +13,15 @@ class BienController extends Controller
     {
         $query = Bien::with('proprietaire');
 
-        if ($request->has('type')) {
+        if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        if ($request->has('proprietaire_id')) {
+        if ($request->filled('proprietaire_id')) {
             $query->where('proprietaire_id', $request->proprietaire_id);
         }
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('numero', 'like', "%{$search}%")
@@ -45,6 +45,7 @@ class BienController extends Controller
             'numero' => 'required|string|max:50',
             'adresse' => 'nullable|string|max:255',
             'cotisation_mensuelle' => 'nullable|numeric|min:0',
+            'date_adhesion' => 'nullable|date',
         ]);
 
         if (!isset($validated['cotisation_mensuelle'])) {
@@ -76,6 +77,7 @@ class BienController extends Controller
             'numero' => 'sometimes|required|string|max:50',
             'adresse' => 'nullable|string|max:255',
             'cotisation_mensuelle' => 'nullable|numeric|min:0',
+            'date_adhesion' => 'nullable|date',
         ]);
 
         $bien->update($validated);

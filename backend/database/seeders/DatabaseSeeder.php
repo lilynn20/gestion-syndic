@@ -43,35 +43,57 @@ class DatabaseSeeder extends Seeder
             ['nom' => 'Alaoui', 'prenom' => 'Sara', 'email' => 'sara.alaoui@email.com', 'telephone' => '0666789012'],
         ];
 
-        foreach ($proprietaires as $propData) {
+        foreach ($proprietaires as $index => $propData) {
             $proprietaire = Proprietaire::create($propData);
 
             // Créer 1 ou 2 biens par propriétaire
             $nombreBiens = rand(1, 2);
             for ($i = 0; $i < $nombreBiens; $i++) {
                 $type = rand(0, 1) ? 'appartement' : 'magasin';
+                
+                // La plupart des biens ont adhéré en Nov 2025, quelques-uns plus tôt
+                if ($index < 2) {
+                    // Les 2 premiers propriétaires sont des anciens (depuis Jan 2024)
+                    $dateAdhesion = Carbon::create(2024, 1, 1);
+                } elseif ($index < 4) {
+                    // Les 2 suivants ont adhéré en milieu d'année 2025
+                    $dateAdhesion = Carbon::create(2025, 6, 1);
+                } else {
+                    // Les derniers ont adhéré en Nov 2025
+                    $dateAdhesion = Carbon::create(2025, 11, 1);
+                }
+                
                 $bien = Bien::create([
                     'proprietaire_id' => $proprietaire->id,
                     'type' => $type,
                     'numero' => ($type === 'appartement' ? 'A' : 'M') . rand(1, 20),
                     'adresse' => 'Immeuble Résidence El Fath, Casablanca',
                     'cotisation_mensuelle' => 50.00,
+                    'date_adhesion' => $dateAdhesion,
                 ]);
 
-                // Créer des paiements pour l'année en cours
-                $anneeActuelle = date('Y');
-                $moisActuel = date('n');
-
-                for ($mois = 1; $mois <= $moisActuel; $mois++) {
-                    // 80% de chance d'avoir payé
-                    if (rand(1, 100) <= 80) {
-                        $dateEcheance = Carbon::create($anneeActuelle, $mois, 1)->endOfMonth();
-                        $datePaiement = Carbon::create($anneeActuelle, $mois, rand(1, 28));
+                // Créer des paiements depuis la date d'adhésion jusqu'à maintenant
+                $now = Carbon::now();
+                $currentDate = $dateAdhesion->copy();
+                
+                while ($currentDate->lte($now)) {
+                    $annee = $currentDate->year;
+                    $mois = $currentDate->month;
+                    
+                    // Ne pas créer de paiement pour les mois futurs
+                    if ($annee > $now->year || ($annee == $now->year && $mois > $now->month)) {
+                        break;
+                    }
+                    
+                    // 85% de chance d'avoir payé (bons payeurs)
+                    if (rand(1, 100) <= 85) {
+                        $dateEcheance = Carbon::create($annee, $mois, 1)->endOfMonth();
+                        $datePaiement = Carbon::create($annee, $mois, rand(1, 28));
 
                         $paiement = Paiement::create([
                             'bien_id' => $bien->id,
                             'mois' => $mois,
-                            'annee' => $anneeActuelle,
+                            'annee' => $annee,
                             'montant' => 50.00,
                             'date_paiement' => $datePaiement,
                             'date_echeance' => $dateEcheance,
@@ -98,6 +120,8 @@ class DatabaseSeeder extends Seeder
                             ]);
                         }
                     }
+                    
+                    $currentDate->addMonth();
                 }
             }
         }

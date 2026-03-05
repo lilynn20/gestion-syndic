@@ -53,12 +53,20 @@ class DashboardController extends Controller
 
     public function tableauPaiements(Request $request): JsonResponse
     {
-        $annee = $request->get('annee', date('Y'));
+        $anneeDebut = $request->get('annee_debut', $request->get('annee', date('Y')));
+        $anneeFin = $request->get('annee_fin', $anneeDebut);
         $typeFilter = $request->get('type');
         $proprietaireFilter = $request->get('proprietaire_id');
 
-        $query = Bien::with(['proprietaire', 'paiements' => function ($q) use ($annee) {
-            $q->where('annee', $annee);
+        // S'assurer que annee_debut <= annee_fin
+        if ($anneeDebut > $anneeFin) {
+            $temp = $anneeDebut;
+            $anneeDebut = $anneeFin;
+            $anneeFin = $temp;
+        }
+
+        $query = Bien::with(['proprietaire', 'paiements' => function ($q) use ($anneeDebut, $anneeFin) {
+            $q->whereBetween('annee', [$anneeDebut, $anneeFin]);
         }]);
 
         if ($typeFilter) {
@@ -79,51 +87,102 @@ class DashboardController extends Controller
                 'type' => $bien->type,
                 'proprietaire' => $bien->proprietaire->full_name,
                 'proprietaire_id' => $bien->proprietaire_id,
+                'date_adhesion' => $bien->date_adhesion,
                 'mois' => [],
                 'total_paye' => 0,
             ];
 
-            for ($mois = 1; $mois <= 12; $mois++) {
-                $paiement = $bien->paiements->first(function ($p) use ($mois) {
-                    return $p->mois === $mois;
-                });
+            // Parcourir toutes les années dans la plage
+            for ($annee = $anneeDebut; $annee <= $anneeFin; $annee++) {
+                // Déterminer le mois de début basé sur date_adhesion
+                $moisDebut = 1;
+                if ($bien->date_adhesion) {
+                    $dateAdhesion = Carbon::parse($bien->date_adhesion);
+                    if ($dateAdhesion->year == $annee) {
+                        $moisDebut = $dateAdhesion->month;
+                    } elseif ($dateAdhesion->year > $annee) {
+                        $moisDebut = 13; // Pas encore adhérent cette année
+                    }
+                }
 
-                $dateEcheance = Carbon::create($annee, $mois, 1)->endOfMonth();
-                $estEnRetard = !$paiement && $dateEcheance->isPast();
+                for ($mois = 1; $mois <= 12; $mois++) {
+                    $key = $annee . '-' . str_pad($mois, 2, '0', STR_PAD_LEFT);
+                    
+                    // Si le mois est avant l'adhésion, marquer comme non applicable
+                    if ($mois < $moisDebut) {
+                        $ligne['mois'][$key] = [
+                            'annee' => $annee,
+                            'mois' => $mois,
+                            'paye' => false,
+                            'montant' => 0,
+                            'statut' => 'non_applicable',
+                            'paiement_id' => null,
+                            'date_paiement' => null,
+                        ];
+                        continue;
+                    }
 
-                $ligne['mois'][$mois] = [
-                    'paye' => $paiement !== null,
-                    'montant' => $paiement ? $paiement->montant : 0,
-                    'statut' => $paiement ? $paiement->statut : ($estEnRetard ? 'en_retard' : 'non_paye'),
-                    'paiement_id' => $paiement ? $paiement->id : null,
-                    'date_paiement' => $paiement ? $paiement->date_paiement->format('d/m/Y') : null,
-                ];
+                    $paiement = $bien->paiements->first(function ($p) use ($mois, $annee) {
+                        return $p->mois === $mois && $p->annee === (int)$annee;
+                    });
 
-                if ($paiement) {
-                    $ligne['total_paye'] += $paiement->montant;
+                    $dateEcheance = Carbon::create($annee, $mois, 1)->endOfMonth();
+                    $estEnRetard = !$paiement && $dateEcheance->isPast();
+
+                    $ligne['mois'][$key] = [
+                        'annee' => $annee,
+                        'mois' => $mois,
+                        'paye' => $paiement !== null,
+                        'montant' => $paiement ? $paiement->montant : 0,
+                        'statut' => $paiement ? $paiement->statut : ($estEnRetard ? 'en_retard' : 'non_paye'),
+                        'paiement_id' => $paiement ? $paiement->id : null,
+                        'date_paiement' => $paiement ? $paiement->date_paiement->format('d/m/Y') : null,
+                    ];
+
+                    if ($paiement) {
+                        $ligne['total_paye'] += $paiement->montant;
+                    }
                 }
             }
 
             $tableau[] = $ligne;
         }
 
+        // Générer la liste des colonnes (mois) pour le frontend
+        $colonnes = [];
+        for ($annee = $anneeDebut; $annee <= $anneeFin; $annee++) {
+            for ($mois = 1; $mois <= 12; $mois++) {
+                $key = $annee . '-' . str_pad($mois, 2, '0', STR_PAD_LEFT);
+                $colonnes[] = [
+                    'key' => $key,
+                    'annee' => $annee,
+                    'mois' => $mois,
+                    'label' => $this->getNomMois($mois) . ' ' . substr($annee, 2),
+                ];
+            }
+        }
+
         // Calcul des totaux par mois
         $totauxParMois = [];
-        for ($mois = 1; $mois <= 12; $mois++) {
+        foreach ($colonnes as $col) {
             $total = 0;
             foreach ($tableau as $ligne) {
-                $total += $ligne['mois'][$mois]['montant'];
+                if (isset($ligne['mois'][$col['key']])) {
+                    $total += $ligne['mois'][$col['key']]['montant'];
+                }
             }
-            $totauxParMois[$mois] = $total;
+            $totauxParMois[$col['key']] = $total;
         }
 
         return response()->json([
             'success' => true,
             'data' => [
                 'tableau' => $tableau,
+                'colonnes' => $colonnes,
                 'totaux_par_mois' => $totauxParMois,
                 'total_general' => array_sum($totauxParMois),
-                'annee' => $annee,
+                'annee_debut' => (int)$anneeDebut,
+                'annee_fin' => (int)$anneeFin,
             ]
         ]);
     }
@@ -164,7 +223,18 @@ class DashboardController extends Controller
         $maintenant = Carbon::now();
 
         foreach ($biens as $bien) {
-            for ($mois = 1; $mois <= 12; $mois++) {
+            // Déterminer le mois de début basé sur date_adhesion
+            $moisDebut = 1;
+            if ($bien->date_adhesion) {
+                $dateAdhesion = Carbon::parse($bien->date_adhesion);
+                if ($dateAdhesion->year == $annee) {
+                    $moisDebut = $dateAdhesion->month;
+                } elseif ($dateAdhesion->year > $annee) {
+                    continue; // Pas encore adhérent cette année
+                }
+            }
+
+            for ($mois = $moisDebut; $mois <= 12; $mois++) {
                 $dateEcheance = Carbon::create($annee, $mois, 1)->endOfMonth();
                 
                 if ($dateEcheance->isPast()) {

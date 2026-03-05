@@ -8,6 +8,7 @@ use App\Models\Paiement;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class RecuController extends Controller
 {
@@ -35,8 +36,17 @@ class RecuController extends Controller
         ]);
     }
 
-    public function downloadPdf(Recu $recu)
+    public function downloadPdf(Request $request, Recu $recu)
     {
+        // Authenticate via token in query param
+        $token = $request->query('token');
+        if ($token) {
+            $accessToken = PersonalAccessToken::findToken($token);
+            if (!$accessToken) {
+                return response()->json(['error' => 'Token invalide'], 401);
+            }
+        }
+
         $recu->load(['paiement.bien.proprietaire', 'paiement.frais']);
 
         $pdf = Pdf::loadView('recus.pdf', [
@@ -46,7 +56,8 @@ class RecuController extends Controller
             'proprietaire' => $recu->paiement->bien->proprietaire,
         ]);
 
-        return $pdf->download('recu-' . $recu->numero_recu . '.pdf');
+        // Stream inline in browser instead of download
+        return $pdf->stream('recu-' . $recu->numero_recu . '.pdf');
     }
 
     public function regenerate(Paiement $paiement): JsonResponse

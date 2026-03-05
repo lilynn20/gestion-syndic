@@ -111,4 +111,14 @@ export const dashboardService = {
   getEvolution: (params) => api.get('/dashboard/evolution', { params }),
 };
 
+// Notifications
+export const notificationService = {
+  getAll: () => api.get('/notifications'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markAsRead: (id) => api.post(`/notifications/${id}/mark-read`),
+  markAllAsRead: () => api.post('/notifications/mark-all-read'),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  generateOverdue: () => api.post('/notifications/generate-overdue'),
+};
+
 export default api;

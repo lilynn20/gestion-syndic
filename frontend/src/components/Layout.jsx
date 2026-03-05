@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { notificationService } from '../services/api';
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +14,9 @@ import {
   X,
   Bell,
   Search,
+  Check,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 
 const menuItems = [
@@ -26,9 +30,94 @@ const menuItems = [
 
 const Layout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const notifRef = useRef(null);
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    loadUnreadCount();
+    // Poll for new notifications every 60 seconds
+    const interval = setInterval(loadUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await notificationService.getUnreadCount();
+      setUnreadCount(response.data.data.count);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  };
+
+  const loadNotifications = async () => {
+    setLoadingNotifs(true);
+    try {
+      const response = await notificationService.getAll();
+      setNotifications(response.data.data.notifications);
+      setUnreadCount(response.data.data.unread_count);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoadingNotifs(false);
+    }
+  };
+
+  const handleNotifClick = () => {
+    if (!notifOpen) {
+      loadNotifications();
+    }
+    setNotifOpen(!notifOpen);
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, is_read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  const generateOverdue = async () => {
+    setLoadingNotifs(true);
+    try {
+      await notificationService.generateOverdue();
+      await loadNotifications();
+    } catch (error) {
+      console.error('Error generating notifications:', error);
+    } finally {
+      setLoadingNotifs(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -123,10 +212,93 @@ const Layout = ({ children }) => {
 
             {/* Right side */}
             <div className="flex items-center gap-3">
-              <button className="p-2 text-slate-500 hover:text-slate-700 relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-teal-500 rounded-full"></span>
-              </button>
+              {/* Notification Bell */}
+              <div className="relative" ref={notifRef}>
+                <button 
+                  onClick={handleNotifClick}
+                  className="p-2 text-slate-500 hover:text-slate-700 relative"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {notifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-slate-800">Notifications</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={generateOverdue}
+                          className="p-1 text-slate-400 hover:text-teal-600 transition-colors"
+                          title="Générer notifications de retard"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${loadingNotifs ? 'animate-spin' : ''}`} />
+                        </button>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-xs text-teal-600 hover:text-teal-700"
+                          >
+                            Tout lire
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {loadingNotifs ? (
+                        <div className="p-4 text-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-slate-200 border-t-teal-600 mx-auto"></div>
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-500">
+                          Aucune notification
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className={`p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer ${
+                              !notif.is_read ? 'bg-teal-50/50' : ''
+                            }`}
+                            onClick={() => !notif.is_read && markAsRead(notif.id)}
+                          >
+                            <div className="flex items-start gap-2">
+                              <div className={`mt-0.5 p-1 rounded-full ${
+                                notif.type === 'payment_overdue' ? 'bg-red-100' : 'bg-teal-100'
+                              }`}>
+                                <AlertCircle className={`h-3 w-3 ${
+                                  notif.type === 'payment_overdue' ? 'text-red-600' : 'text-teal-600'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-800">{notif.title}</p>
+                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              {!notif.is_read && (
+                                <div className="w-2 h-2 bg-teal-500 rounded-full mt-1.5"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200">
                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-sm font-medium">
                   {user?.name?.charAt(0) || 'U'}

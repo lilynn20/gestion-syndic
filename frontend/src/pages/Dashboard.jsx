@@ -25,19 +25,20 @@ const Dashboard = () => {
   const [tableau, setTableau] = useState(null);
   const [evolution, setEvolution] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [annee, setAnnee] = useState(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const [anneeDebut, setAnneeDebut] = useState(currentYear - 1);
+  const [anneeFin, setAnneeFin] = useState(currentYear);
+  const [anneeEvolution, setAnneeEvolution] = useState(currentYear);
   const [filters, setFilters] = useState({
     type: '',
     proprietaire_id: '',
   });
   const [proprietaires, setProprietaires] = useState([]);
 
-  const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-
   useEffect(() => {
     loadData();
     loadProprietaires();
-  }, [annee, filters]);
+  }, [anneeDebut, anneeFin, anneeEvolution, filters]);
 
   const loadProprietaires = async () => {
     try {
@@ -52,9 +53,9 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const [statsRes, tableauRes, evolutionRes] = await Promise.all([
-        dashboardService.getStats({ annee }),
-        dashboardService.getTableauPaiements({ annee, ...filters }),
-        dashboardService.getEvolution({ annee }),
+        dashboardService.getStats({ annee: anneeFin }),
+        dashboardService.getTableauPaiements({ annee_debut: anneeDebut, annee_fin: anneeFin, ...filters }),
+        dashboardService.getEvolution({ annee: anneeEvolution }),
       ]);
 
       setStats(statsRes.data.data);
@@ -89,12 +90,17 @@ const Dashboard = () => {
         return 'bg-green-50 border-green-200';
       case 'en_retard':
         return 'bg-red-50 border-red-200';
+      case 'non_applicable':
+        return 'bg-slate-100 border-slate-200';
       default:
         return 'bg-slate-50 border-slate-200';
     }
   };
 
   const getStatutIcon = (statut, paye) => {
+    if (statut === 'non_applicable') {
+      return <span className="text-xs text-slate-400">-</span>;
+    }
     if (paye) {
       return <Check className="h-3.5 w-3.5 text-green-600" />;
     }
@@ -120,15 +126,18 @@ const Dashboard = () => {
           <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Tableau de bord</h1>
           <p className="text-sm text-slate-500 mt-1">Vue d'ensemble de votre copropriété</p>
         </div>
-        <select
-          value={annee}
-          onChange={(e) => setAnnee(parseInt(e.target.value))}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-        >
-          {[2024, 2025, 2026, 2027].map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">Stats & Graphe:</span>
+          <select
+            value={anneeEvolution}
+            onChange={(e) => setAnneeEvolution(parseInt(e.target.value))}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {[2024, 2025, 2026, 2027].map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -224,7 +233,39 @@ const Dashboard = () => {
       </div>
 
       {/* Filtres tableau */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">De:</span>
+          <select
+            value={anneeDebut}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setAnneeDebut(val);
+              if (val > anneeFin) setAnneeFin(val);
+            }}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {[2024, 2025, 2026, 2027].map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">À:</span>
+          <select
+            value={anneeFin}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setAnneeFin(val);
+              if (val < anneeDebut) setAnneeDebut(val);
+            }}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {[2024, 2025, 2026, 2027].map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
         <select
           value={filters.type}
           onChange={(e) => setFilters({ ...filters, type: e.target.value })}
@@ -249,21 +290,23 @@ const Dashboard = () => {
       {/* Tableau des paiements */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-medium text-slate-800">Suivi des paiements {annee}</h2>
+          <h2 className="text-sm font-medium text-slate-800">
+            Suivi des paiements {anneeDebut === anneeFin ? anneeDebut : `${anneeDebut} - ${anneeFin}`}
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sticky left-0 bg-slate-50">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sticky left-0 bg-slate-50 z-10 min-w-[120px]">
                   Bien
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sticky left-[120px] bg-slate-50 z-10 min-w-[140px]">
                   Propriétaire
                 </th>
-                {moisNoms.map((mois, index) => (
-                  <th key={index} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wide">
-                    {mois}
+                {tableau?.colonnes?.map((col) => (
+                  <th key={col.key} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                    {col.label}
                   </th>
                 ))}
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
@@ -274,7 +317,7 @@ const Dashboard = () => {
             <tbody className="divide-y divide-slate-100">
               {tableau?.tableau?.map((ligne) => (
                 <tr key={ligne.bien_id} className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 whitespace-nowrap sticky left-0 bg-white">
+                  <td className="px-4 py-3 whitespace-nowrap sticky left-0 bg-white z-10 min-w-[120px]">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                         ligne.type === 'appartement' 
@@ -286,19 +329,28 @@ const Dashboard = () => {
                       <span className="font-medium text-slate-800">{ligne.numero}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+                  <td className="px-4 py-3 whitespace-nowrap text-slate-600 sticky left-[120px] bg-white z-10 min-w-[140px]">
                     {ligne.proprietaire}
                   </td>
-                  {Object.values(ligne.mois).map((moisData, index) => (
-                    <td key={index} className="px-2 py-3 text-center">
-                      <div
-                        className={`w-7 h-7 mx-auto rounded-md border flex items-center justify-center ${getStatutClasses(moisData.statut)}`}
-                        title={moisData.paye ? `Payé le ${moisData.date_paiement}` : 'Non payé'}
-                      >
-                        {getStatutIcon(moisData.statut, moisData.paye)}
-                      </div>
-                    </td>
-                  ))}
+                  {tableau?.colonnes?.map((col) => {
+                    const moisData = ligne.mois[col.key];
+                    return (
+                      <td key={col.key} className="px-2 py-3 text-center">
+                        <div
+                          className={`w-7 h-7 mx-auto rounded-md border flex items-center justify-center ${getStatutClasses(moisData?.statut)}`}
+                          title={
+                            moisData?.statut === 'non_applicable' 
+                              ? 'Pas encore adhérent' 
+                              : moisData?.paye 
+                                ? `Payé le ${moisData?.date_paiement}` 
+                                : 'Non payé'
+                          }
+                        >
+                          {getStatutIcon(moisData?.statut, moisData?.paye)}
+                        </div>
+                      </td>
+                    );
+                  })}
                   <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-slate-800">
                     {ligne.total_paye} DH
                   </td>
@@ -307,10 +359,10 @@ const Dashboard = () => {
             </tbody>
             <tfoot className="bg-slate-50 border-t border-slate-200">
               <tr>
-                <td colSpan="2" className="px-4 py-3 font-medium text-slate-800">Total</td>
-                {Object.values(tableau?.totaux_par_mois || {}).map((total, index) => (
-                  <td key={index} className="px-2 py-3 text-center font-medium text-slate-600 text-xs">
-                    {total}
+                <td colSpan="2" className="px-4 py-3 font-medium text-slate-800 sticky left-0 bg-slate-50 z-10">Total</td>
+                {tableau?.colonnes?.map((col) => (
+                  <td key={col.key} className="px-2 py-3 text-center font-medium text-slate-600 text-xs">
+                    {tableau?.totaux_par_mois?.[col.key] || 0}
                   </td>
                 ))}
                 <td className="px-4 py-3 text-right font-semibold text-teal-600">
@@ -339,6 +391,12 @@ const Dashboard = () => {
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-md bg-slate-50 border border-slate-200"></div>
           <span>Non payé</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <span className="text-xs text-slate-400">-</span>
+          </div>
+          <span>Pas encore adhérent</span>
         </div>
       </div>
     </div>

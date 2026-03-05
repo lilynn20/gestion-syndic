@@ -4,7 +4,6 @@ import {
   Plus,
   Trash2,
   X,
-  Calendar,
   Download,
   CheckCircle,
   AlertCircle,
@@ -19,7 +18,7 @@ const Paiements = () => {
   const [filterAnnee, setFilterAnnee] = useState(new Date().getFullYear());
   const [filterMois, setFilterMois] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [showMultiModal, setShowMultiModal] = useState(false);
+  const [isAnticipated, setIsAnticipated] = useState(false);
   const [formData, setFormData] = useState({
     bien_id: '',
     mois: new Date().getMonth() + 1,
@@ -27,14 +26,7 @@ const Paiements = () => {
     montant: 50,
     date_paiement: new Date().toISOString().split('T')[0],
     notes: '',
-  });
-  const [multiFormData, setMultiFormData] = useState({
-    bien_id: '',
-    mois_debut: new Date().getMonth() + 1,
-    annee_debut: new Date().getFullYear(),
     nombre_mois: 3,
-    montant_par_mois: 50,
-    date_paiement: new Date().toISOString().split('T')[0],
   });
   const [error, setError] = useState('');
 
@@ -75,22 +67,11 @@ const Paiements = () => {
       montant: 50,
       date_paiement: new Date().toISOString().split('T')[0],
       notes: '',
+      nombre_mois: 3,
     });
+    setIsAnticipated(false);
     setError('');
     setShowModal(true);
-  };
-
-  const openMultiModal = () => {
-    setMultiFormData({
-      bien_id: '',
-      mois_debut: new Date().getMonth() + 1,
-      annee_debut: new Date().getFullYear(),
-      nombre_mois: 3,
-      montant_par_mois: 50,
-      date_paiement: new Date().toISOString().split('T')[0],
-    });
-    setError('');
-    setShowMultiModal(true);
   };
 
   const handleSubmit = async (e) => {
@@ -98,21 +79,21 @@ const Paiements = () => {
     setError('');
 
     try {
-      await paiementService.create(formData);
+      if (isAnticipated) {
+        // Paiement anticipé - multiple months
+        await paiementService.createMultiple({
+          bien_id: formData.bien_id,
+          mois_debut: formData.mois,
+          annee_debut: formData.annee,
+          nombre_mois: formData.nombre_mois,
+          montant_par_mois: formData.montant,
+          date_paiement: formData.date_paiement,
+        });
+      } else {
+        // Paiement simple
+        await paiementService.create(formData);
+      }
       setShowModal(false);
-      loadData();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Une erreur est survenue');
-    }
-  };
-
-  const handleMultiSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      await paiementService.createMultiple(multiFormData);
-      setShowMultiModal(false);
       loadData();
     } catch (err) {
       setError(err.response?.data?.message || 'Une erreur est survenue');
@@ -165,18 +146,11 @@ const Paiements = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={openMultiModal}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-md hover:bg-slate-700 transition-colors"
-          >
-            <Calendar className="h-4 w-4" />
-            Anticipé
-          </button>
-          <button
             onClick={openModal}
             className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Nouveau
+            Nouveau paiement
           </button>
         </div>
       </div>
@@ -281,7 +255,10 @@ const Paiements = () => {
                       <div className="flex justify-end gap-1">
                         {paiement.recu && (
                           <button
-                            onClick={() => window.open(`http://localhost:8000/api/recus/${paiement.recu.id}/download`, '_blank')}
+                            onClick={() => {
+                              const token = localStorage.getItem('token');
+                              window.open(`http://localhost:8000/api/recus/${paiement.recu.id}/download?token=${token}`, '_blank');
+                            }}
                             className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                             title="Télécharger le reçu"
                           >
@@ -312,12 +289,14 @@ const Paiements = () => {
         </div>
       )}
 
-      {/* Modal Paiement Simple */}
+      {/* Modal Paiement */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h2 className="text-sm font-medium text-slate-800">Nouveau paiement</h2>
+              <h2 className="text-sm font-medium text-slate-800">
+                {isAnticipated ? 'Paiement anticipé' : 'Nouveau paiement'}
+              </h2>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
@@ -329,6 +308,20 @@ const Paiements = () => {
                   {error}
                 </div>
               )}
+
+              {/* Checkbox paiement anticipé */}
+              <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md cursor-pointer hover:bg-slate-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isAnticipated}
+                  onChange={(e) => setIsAnticipated(e.target.checked)}
+                  className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-slate-700">Paiement anticipé</span>
+                  <p className="text-xs text-slate-500">Payer plusieurs mois à l'avance</p>
+                </div>
+              </label>
 
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
@@ -349,7 +342,9 @@ const Paiements = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Mois *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    {isAnticipated ? 'À partir du mois *' : 'Mois *'}
+                  </label>
                   <select
                     value={formData.mois}
                     onChange={(e) => setFormData({ ...formData, mois: parseInt(e.target.value) })}
@@ -376,9 +371,26 @@ const Paiements = () => {
                 </div>
               </div>
 
+              {isAnticipated && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Nombre de mois *</label>
+                  <input
+                    type="number"
+                    value={formData.nombre_mois}
+                    onChange={(e) => setFormData({ ...formData, nombre_mois: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    min="1"
+                    max="24"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Montant (DH) *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    {isAnticipated ? 'Montant/mois (DH) *' : 'Montant (DH) *'}
+                  </label>
                   <input
                     type="number"
                     value={formData.montant}
@@ -401,148 +413,30 @@ const Paiements = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  rows="2"
-                ></textarea>
-              </div>
+              {!isAnticipated && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    rows="2"
+                  ></textarea>
+                </div>
+              )}
+
+              {isAnticipated && (
+                <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
+                  <p className="text-sm text-teal-700">
+                    <strong>Total à payer :</strong> {formData.nombre_mois * formData.montant} DH
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-medium bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Paiement Anticipé */}
-      {showMultiModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h2 className="text-sm font-medium text-slate-800">Paiement anticipé</h2>
-              <button onClick={() => setShowMultiModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleMultiSubmit} className="p-5 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
-                <select
-                  value={multiFormData.bien_id}
-                  onChange={(e) => setMultiFormData({ ...multiFormData, bien_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
-                >
-                  <option value="">Sélectionner un bien</option>
-                  {biens.map((bien) => (
-                    <option key={bien.id} value={bien.id}>
-                      {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero} - {bien.proprietaire?.prenom} {bien.proprietaire?.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">À partir du mois *</label>
-                  <select
-                    value={multiFormData.mois_debut}
-                    onChange={(e) => setMultiFormData({ ...multiFormData, mois_debut: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    required
-                  >
-                    {moisNoms.map((nom, index) => (
-                      <option key={index} value={index + 1}>{nom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Année *</label>
-                  <select
-                    value={multiFormData.annee_debut}
-                    onChange={(e) => setMultiFormData({ ...multiFormData, annee_debut: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    required
-                  >
-                    {[2024, 2025, 2026, 2027].map((a) => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Nombre de mois *</label>
-                  <input
-                    type="number"
-                    value={multiFormData.nombre_mois}
-                    onChange={(e) => setMultiFormData({ ...multiFormData, nombre_mois: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    min="1"
-                    max="24"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Montant/mois (DH) *</label>
-                  <input
-                    type="number"
-                    value={multiFormData.montant_par_mois}
-                    onChange={(e) => setMultiFormData({ ...multiFormData, montant_par_mois: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Date paiement *</label>
-                <input
-                  type="date"
-                  value={multiFormData.date_paiement}
-                  onChange={(e) => setMultiFormData({ ...multiFormData, date_paiement: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
-                />
-              </div>
-
-              <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
-                <p className="text-sm text-teal-700">
-                  <strong>Total à payer :</strong> {multiFormData.nombre_mois * multiFormData.montant_par_mois} DH
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowMultiModal(false)}
                   className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                 >
                   Annuler

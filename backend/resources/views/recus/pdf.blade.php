@@ -2,209 +2,146 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reçu de Paiement - {{ $recu->numero_recu }}</title>
+    <title>Reçu {{ $recu->numero_recu }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 12px;
-            line-height: 1.6;
-            color: #333;
-            padding: 20px;
+            line-height: 1.5;
+            color: #000;
+            padding: 30px;
         }
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #2563eb;
-            padding-bottom: 20px;
         }
         .header h1 {
-            color: #2563eb;
-            font-size: 24px;
-            margin-bottom: 5px;
+            font-size: 18px;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
         }
         .header p {
-            color: #666;
+            margin: 0;
+            font-size: 11px;
         }
         .recu-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-        }
-        .recu-numero {
-            background-color: #f3f4f6;
-            padding: 10px 15px;
-            border-radius: 5px;
-        }
-        .recu-numero strong {
-            color: #2563eb;
-        }
-        .section {
             margin-bottom: 25px;
+            border: 1px solid #000;
+            padding: 10px;
         }
-        .section-title {
-            background-color: #2563eb;
-            color: white;
-            padding: 8px 15px;
+        .row {
+            margin-bottom: 8px;
+        }
+        .row:last-child {
+            margin-bottom: 0;
+        }
+        .label {
             font-weight: bold;
-            margin-bottom: 15px;
         }
-        .info-grid {
-            display: table;
+        table {
             width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
         }
-        .info-row {
-            display: table-row;
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
         }
-        .info-label {
-            display: table-cell;
-            padding: 5px 10px;
+        th {
+            background-color: #f0f0f0;
             font-weight: bold;
-            width: 40%;
-            background-color: #f9fafb;
         }
-        .info-value {
-            display: table-cell;
-            padding: 5px 10px;
-        }
-        .montant-section {
-            background-color: #f0fdf4;
-            border: 2px solid #22c55e;
-            padding: 20px;
-            text-align: center;
-            margin: 30px 0;
-        }
-        .montant-label {
+        .total-row {
+            font-weight: bold;
             font-size: 14px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        .montant-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #22c55e;
         }
         .footer {
             margin-top: 50px;
-            text-align: center;
-            font-size: 10px;
-            color: #999;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 20px;
         }
         .signature {
-            margin-top: 40px;
-            text-align: right;
+            float: right;
+            text-align: center;
+            width: 200px;
         }
         .signature-line {
-            border-top: 1px solid #333;
-            width: 200px;
-            margin-left: auto;
-            margin-top: 50px;
+            border-top: 1px solid #000;
+            margin-top: 60px;
             padding-top: 5px;
+        }
+        .note {
+            margin-top: 80px;
+            font-size: 10px;
             text-align: center;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>SYNDIC DE COPROPRIÉTÉ</h1>
-        <p>Reçu de Paiement</p>
+        <h1>Reçu de Paiement</h1>
+        <p>Syndic de Copropriété</p>
     </div>
 
     <div class="recu-info">
-        <div class="recu-numero">
-            <strong>Reçu N° :</strong> {{ $recu->numero_recu }}
+        <div class="row">
+            <span class="label">Reçu N° :</span> {{ $recu->numero_recu }}
         </div>
-        <div>
-            <strong>Date d'émission :</strong> {{ $recu->date_emission->format('d/m/Y') }}
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Informations du Propriétaire</div>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Nom complet</div>
-                <div class="info-value">{{ $proprietaire->prenom }} {{ $proprietaire->nom }}</div>
-            </div>
-            @if($proprietaire->email)
-            <div class="info-row">
-                <div class="info-label">Email</div>
-                <div class="info-value">{{ $proprietaire->email }}</div>
-            </div>
-            @endif
-            @if($proprietaire->telephone)
-            <div class="info-row">
-                <div class="info-label">Téléphone</div>
-                <div class="info-value">{{ $proprietaire->telephone }}</div>
-            </div>
-            @endif
+        <div class="row">
+            <span class="label">Date :</span> {{ $recu->date_emission->format('d/m/Y') }}
         </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">Informations du Bien</div>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Type</div>
-                <div class="info-value">{{ ucfirst($bien->type) }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Numéro</div>
-                <div class="info-value">{{ $bien->numero }}</div>
-            </div>
-            @if($bien->adresse)
-            <div class="info-row">
-                <div class="info-label">Adresse</div>
-                <div class="info-value">{{ $bien->adresse }}</div>
-            </div>
-            @endif
-        </div>
+    <div class="row">
+        <span class="label">Propriétaire :</span> {{ $proprietaire->prenom }} {{ $proprietaire->nom }}
+    </div>
+    @if($proprietaire->telephone)
+    <div class="row">
+        <span class="label">Tél :</span> {{ $proprietaire->telephone }}
+    </div>
+    @endif
+    <div class="row">
+        <span class="label">Bien :</span> {{ ucfirst($bien->type) }} N° {{ $bien->numero }}
     </div>
 
-    <div class="section">
-        <div class="section-title">Détails du Paiement</div>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Période</div>
-                <div class="info-value">{{ $paiement->mois_nom }} {{ $paiement->annee }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Date de paiement</div>
-                <div class="info-value">{{ $paiement->date_paiement->format('d/m/Y') }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Cotisation mensuelle</div>
-                <div class="info-value">{{ number_format($paiement->montant, 2) }} DH</div>
-            </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th style="width: 100px; text-align: right;">Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Cotisation {{ $paiement->mois_nom }} {{ $paiement->annee }}</td>
+                <td style="text-align: right;">{{ number_format($paiement->montant, 2) }} DH</td>
+            </tr>
             @if($paiement->frais)
-            <div class="info-row">
-                <div class="info-label">Frais supplémentaires</div>
-                <div class="info-value">{{ number_format($paiement->frais->montant, 2) }} DH ({{ $paiement->frais->description }})</div>
-            </div>
+            <tr>
+                <td>{{ $paiement->frais->description }}</td>
+                <td style="text-align: right;">{{ number_format($paiement->frais->montant, 2) }} DH</td>
+            </tr>
             @endif
-        </div>
-    </div>
+            <tr class="total-row">
+                <td>Total</td>
+                <td style="text-align: right;">{{ number_format($recu->montant_total, 2) }} DH</td>
+            </tr>
+        </tbody>
+    </table>
 
-    <div class="montant-section">
-        <div class="montant-label">MONTANT TOTAL PAYÉ</div>
-        <div class="montant-value">{{ number_format($recu->montant_total, 2) }} DH</div>
-    </div>
-
-    <div class="signature">
-        <p>Le Syndic</p>
-        <div class="signature-line">Signature et cachet</div>
+    <div class="row">
+        <span class="label">Date de paiement :</span> {{ $paiement->date_paiement->format('d/m/Y') }}
     </div>
 
     <div class="footer">
-        <p>Ce reçu est généré automatiquement et fait foi de paiement.</p>
-        <p>Conservez ce document pour vos archives.</p>
+        <div class="signature">
+            <p>Le Syndic</p>
+            <div class="signature-line">Signature</div>
+        </div>
+    </div>
+
+    <div class="note">
+        Ce reçu fait foi de paiement.
     </div>
 </body>
 </html>

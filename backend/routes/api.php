@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\FraisController;
 use App\Http\Controllers\Api\DepenseController;
 use App\Http\Controllers\Api\RecuController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\NotificationController;
 
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
@@ -52,6 +53,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reçus
     Route::get('/recus', [RecuController::class, 'index']);
     Route::get('/recus/{recu}', [RecuController::class, 'show']);
-    Route::get('/recus/{recu}/download', [RecuController::class, 'downloadPdf']);
     Route::post('/recus/regenerate/{paiement}', [RecuController::class, 'regenerate']);
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::post('/notifications/generate-overdue', [NotificationController::class, 'generateOverdueNotifications']);
+    Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 });
+
+// Route publique pour télécharger le PDF (avec token en query param)
+Route::get('/recus/{recu}/download', [RecuController::class, 'downloadPdf'])->name('recus.download');
