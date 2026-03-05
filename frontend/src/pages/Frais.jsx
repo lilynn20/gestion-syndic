@@ -5,7 +5,6 @@ import {
   Pencil,
   Trash2,
   X,
-  Receipt,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
@@ -145,22 +144,25 @@ const Frais = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Frais supplémentaires</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Frais supplémentaires</h1>
+          <p className="text-sm text-slate-500 mt-1">{frais.length} frais enregistré(s)</p>
+        </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors"
         >
-          <Plus size={20} />
+          <Plus className="h-4 w-4" />
           Ajouter
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         <select
           value={filterBien}
           onChange={(e) => setFilterBien(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">Tous les biens</option>
           {biens.map((bien) => (
@@ -172,7 +174,7 @@ const Frais = () => {
         <select
           value={filterPaye}
           onChange={(e) => setFilterPaye(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">Tous les statuts</option>
           <option value="true">Payés</option>
@@ -183,96 +185,96 @@ const Frais = () => {
       {/* Liste */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-teal-600"></div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Bien
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Description
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Montant
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Paiement lié
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-100">
                 {frais.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                           item.bien?.type === 'appartement' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-purple-100 text-purple-700'
+                            ? 'bg-slate-100 text-slate-700' 
+                            : 'bg-teal-50 text-teal-700'
                         }`}>
                           {item.bien?.type === 'appartement' ? 'App' : 'Mag'} {item.bien?.numero}
                         </span>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-slate-500 mt-1">
                           {item.bien?.proprietaire?.prenom} {item.bien?.proprietaire?.nom}
                         </p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-slate-600">
                       {item.description}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-orange-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-amber-600">
                       {item.montant} DH
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
                       {new Date(item.date_frais).toLocaleDateString('fr-FR')}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
                       {item.paiement ? (
-                        <span className="text-blue-600">
+                        <span className="text-teal-600">
                           {moisNoms[item.paiement.mois - 1]} {item.paiement.annee}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {item.paye ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                          <CheckCircle size={12} /> Payé
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-50 text-green-700">
+                          <CheckCircle className="h-3 w-3" /> Payé
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                          <XCircle size={12} /> Non payé
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-50 text-red-700">
+                          <XCircle className="h-3 w-3" /> Non payé
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <button
                           onClick={() => openModal(item)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                         >
-                          <Pencil size={18} />
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -281,7 +283,7 @@ const Frais = () => {
 
                 {frais.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan="7" className="px-4 py-12 text-center text-slate-500 text-sm">
                       Aucun frais trouvé
                     </td>
                   </tr>
@@ -296,28 +298,28 @@ const Frais = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h2 className="text-sm font-medium text-slate-800">
                 {editingId ? 'Modifier les frais' : 'Nouveaux frais'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bien *</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
                 <select
                   value={formData.bien_id}
                   onChange={(e) => handleBienChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
                 >
                   <option value="">Sélectionner un bien</option>
@@ -330,13 +332,13 @@ const Frais = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Lié au paiement (optionnel)
                 </label>
                 <select
                   value={formData.paiement_id}
                   onChange={(e) => setFormData({ ...formData, paiement_id: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">Aucun paiement lié</option>
                   {paiements.map((p) => (
@@ -348,12 +350,12 @@ const Frais = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Ex: Réparation plomberie"
                   required
                 />
@@ -361,24 +363,24 @@ const Frais = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Montant (DH) *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Montant (DH) *</label>
                   <input
                     type="number"
                     value={formData.montant}
                     onChange={(e) => setFormData({ ...formData, montant: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     min="0"
                     step="0.01"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
                   <input
                     type="date"
                     value={formData.date_frais}
                     onChange={(e) => setFormData({ ...formData, date_frais: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
@@ -390,24 +392,24 @@ const Frais = () => {
                   id="paye"
                   checked={formData.paye}
                   onChange={(e) => setFormData({ ...formData, paye: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
                 />
-                <label htmlFor="paye" className="text-sm text-gray-700">
+                <label htmlFor="paye" className="text-sm text-slate-700">
                   Frais payés
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
                 >
                   {editingId ? 'Modifier' : 'Créer'}
                 </button>

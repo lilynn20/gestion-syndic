@@ -9,7 +9,6 @@ import {
   User,
   Mail,
   Phone,
-  Building2,
 } from 'lucide-react';
 
 const Proprietaires = () => {
@@ -98,96 +97,99 @@ const Proprietaires = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Propriétaires</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Propriétaires</h1>
+          <p className="text-sm text-slate-500 mt-1">{proprietaires.length} propriétaire(s) enregistré(s)</p>
+        </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors"
         >
-          <Plus size={20} />
+          <Plus className="h-4 w-4" />
           Ajouter
         </button>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
         <input
           type="text"
           placeholder="Rechercher un propriétaire..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
       {/* Liste */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-teal-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {proprietaires.map((proprietaire) => (
             <div
               key={proprietaire.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User className="text-blue-600" size={24} />
+                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <User className="h-5 w-5 text-slate-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">
+                    <h3 className="text-sm font-medium text-slate-800">
                       {proprietaire.prenom} {proprietaire.nom}
                     </h3>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-xs text-slate-500">
                       {proprietaire.biens?.length || 0} bien(s)
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => openModal(proprietaire)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                   >
-                    <Pencil size={18} />
+                    <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(proprietaire.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm">
                 {proprietaire.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={16} className="text-gray-400" />
-                    <span>{proprietaire.email}</span>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                    <span className="truncate">{proprietaire.email}</span>
                   </div>
                 )}
                 {proprietaire.telephone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-gray-400" />
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Phone className="h-4 w-4 text-slate-400" />
                     <span>{proprietaire.telephone}</span>
                   </div>
                 )}
               </div>
 
               {proprietaire.biens?.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-gray-500 mb-2">Biens :</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <p className="text-xs text-slate-500 mb-2">Biens :</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {proprietaire.biens.map((bien) => (
                       <span
                         key={bien.id}
-                        className={`px-2 py-1 text-xs rounded-full ${
+                        className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                           bien.type === 'appartement'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-purple-100 text-purple-700'
+                            ? 'bg-slate-100 text-slate-700'
+                            : 'bg-teal-50 text-teal-700'
                         }`}
                       >
                         {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero}
@@ -200,7 +202,7 @@ const Proprietaires = () => {
           ))}
 
           {proprietaires.length === 0 && (
-            <div className="col-span-full text-center py-12 text-gray-500">
+            <div className="col-span-full text-center py-12 text-slate-500 text-sm">
               Aucun propriétaire trouvé
             </div>
           )}
@@ -211,84 +213,84 @@ const Proprietaires = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h2 className="text-sm font-medium text-slate-800">
                 {editingId ? 'Modifier le propriétaire' : 'Nouveau propriétaire'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                   {error}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Prénom *
                   </label>
                   <input
                     type="text"
                     value={formData.prenom}
                     onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Nom *
                   </label>
                   <input
                     type="text"
                     value={formData.nom}
                     onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Email
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Téléphone
                 </label>
                 <input
                   type="tel"
                   value={formData.telephone}
                   onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
                 >
                   {editingId ? 'Modifier' : 'Créer'}
                 </button>

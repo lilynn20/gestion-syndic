@@ -15,10 +15,9 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts';
 
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const COLORS = ['#0f766e', '#334155', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'];
 
 const Depenses = () => {
   const [depenses, setDepenses] = useState([]);
@@ -131,56 +130,59 @@ const Depenses = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Dépenses</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Dépenses</h1>
+          <p className="text-sm text-slate-500 mt-1">{depenses.length} dépense(s) enregistrée(s)</p>
+        </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors"
         >
-          <Plus size={20} />
+          <Plus className="h-4 w-4" />
           Ajouter
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-red-100">
-              <TrendingDown className="text-red-600" size={24} />
+            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+              <TrendingDown className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total dépenses</p>
-              <p className="text-2xl font-bold text-red-600">
+              <p className="text-xs text-slate-500">Total dépenses</p>
+              <p className="text-lg font-semibold text-red-600">
                 {statistiques?.total_depenses || 0} DH
               </p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-blue-100">
-              <Wallet className="text-blue-600" size={24} />
+            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Wallet className="h-5 w-5 text-slate-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Nombre de dépenses</p>
-              <p className="text-2xl font-bold text-gray-800">
+              <p className="text-xs text-slate-500">Nombre de dépenses</p>
+              <p className="text-lg font-semibold text-slate-800">
                 {statistiques?.nombre_depenses || 0}
               </p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="text-sm text-gray-500 mb-2">Par catégorie</h3>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h3 className="text-xs text-slate-500 mb-2">Par catégorie</h3>
           {pieData.length > 0 ? (
-            <div className="h-32">
+            <div className="h-24">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={30}
-                    outerRadius={50}
+                    innerRadius={25}
+                    outerRadius={40}
                     paddingAngle={2}
                     dataKey="value"
                   >
@@ -193,27 +195,27 @@ const Depenses = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-gray-400 text-sm">Aucune donnée</p>
+            <p className="text-slate-400 text-sm">Aucune donnée</p>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Rechercher une dépense..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
         <select
           value={filterCategorie}
           onChange={(e) => setFilterCategorie(e.target.value)}
-          className="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">Toutes les catégories</option>
           {categories.map((cat) => (
@@ -225,65 +227,65 @@ const Depenses = () => {
       {/* Liste */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-teal-600"></div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Description
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Catégorie
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Montant
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-100">
                 {depenses.map((depense) => (
-                  <tr key={depense.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-800">
+                  <tr key={depense.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm text-slate-800">
                       {depense.description}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {depense.categorie ? (
-                        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700">
                           {depense.categorie}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-red-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-red-600">
                       {depense.montant} DH
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
                       {new Date(depense.date_depense).toLocaleDateString('fr-FR')}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <button
                           onClick={() => openModal(depense)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                         >
-                          <Pencil size={18} />
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(depense.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -292,7 +294,7 @@ const Depenses = () => {
 
                 {depenses.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan="5" className="px-4 py-12 text-center text-slate-500 text-sm">
                       Aucune dépense trouvée
                     </td>
                   </tr>
@@ -307,41 +309,41 @@ const Depenses = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h2 className="text-sm font-medium text-slate-800">
                 {editingId ? 'Modifier la dépense' : 'Nouvelle dépense'}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Ex: Facture électricité"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Catégorie</label>
                 <input
                   type="text"
                   value={formData.categorie}
                   onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Ex: Électricité, Eau, Nettoyage..."
                   list="categories-list"
                 />
@@ -354,40 +356,40 @@ const Depenses = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Montant (DH) *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Montant (DH) *</label>
                   <input
                     type="number"
                     value={formData.montant}
                     onChange={(e) => setFormData({ ...formData, montant: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     min="0"
                     step="0.01"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
                   <input
                     type="date"
                     value={formData.date_depense}
                     onChange={(e) => setFormData({ ...formData, date_depense: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
                 >
                   {editingId ? 'Modifier' : 'Créer'}
                 </button>

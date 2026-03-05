@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { dashboardService, proprietaireService, bienService } from '../services/api';
+import { dashboardService, proprietaireService } from '../services/api';
 import {
   Users,
   Building2,
@@ -8,19 +8,16 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  CheckCircle,
+  Check,
 } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
 } from 'recharts';
 
 const Dashboard = () => {
@@ -70,37 +67,47 @@ const Dashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <div className="flex items-center justify-between">
+  const StatCard = ({ title, value, icon: Icon, iconBg, subtext }) => (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-2">{value}</p>
-          {subtext && <p className="text-sm text-gray-400 mt-1">{subtext}</p>}
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{title}</p>
+          <p className="text-2xl font-semibold text-slate-800 mt-1">{value}</p>
+          {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
         </div>
-        <div className={`p-4 rounded-full ${color}`}>
-          <Icon size={24} className="text-white" />
+        <div className={`p-2.5 rounded-lg ${iconBg}`}>
+          <Icon className="h-5 w-5 text-white" />
         </div>
       </div>
     </div>
   );
 
-  const getStatutColor = (statut) => {
+  const getStatutClasses = (statut) => {
     switch (statut) {
       case 'paye':
       case 'avance':
-        return 'bg-green-500';
+        return 'bg-green-50 border-green-200';
       case 'en_retard':
-        return 'bg-red-500';
+        return 'bg-red-50 border-red-200';
       default:
-        return 'bg-gray-200';
+        return 'bg-slate-50 border-slate-200';
     }
+  };
+
+  const getStatutIcon = (statut, paye) => {
+    if (paye) {
+      return <Check className="h-3.5 w-3.5 text-green-600" />;
+    }
+    if (statut === 'en_retard') {
+      return <span className="text-xs text-red-500">!</span>;
+    }
+    return null;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-teal-600"></div>
       </div>
     );
   }
@@ -109,81 +116,82 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Tableau de bord</h1>
-        <div className="flex items-center gap-4">
-          <select
-            value={annee}
-            onChange={(e) => setAnnee(parseInt(e.target.value))}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[2024, 2025, 2026, 2027].map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Tableau de bord</h1>
+          <p className="text-sm text-slate-500 mt-1">Vue d'ensemble de votre copropriété</p>
         </div>
+        <select
+          value={annee}
+          onChange={(e) => setAnnee(parseInt(e.target.value))}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          {[2024, 2025, 2026, 2027].map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Propriétaires"
           value={stats?.statistiques?.total_proprietaires || 0}
           icon={Users}
-          color="bg-blue-500"
+          iconBg="bg-slate-700"
         />
         <StatCard
           title="Biens"
           value={stats?.statistiques?.total_biens || 0}
           icon={Building2}
-          color="bg-green-500"
-          subtext={`${stats?.statistiques?.total_appartements || 0} app. / ${stats?.statistiques?.total_magasins || 0} mag.`}
+          iconBg="bg-teal-600"
+          subtext={`${stats?.statistiques?.total_appartements || 0} app. · ${stats?.statistiques?.total_magasins || 0} mag.`}
         />
         <StatCard
           title="Total Paiements"
           value={`${stats?.statistiques?.total_paiements || 0} DH`}
           icon={CreditCard}
-          color="bg-purple-500"
+          iconBg="bg-slate-700"
         />
         <StatCard
           title="En Retard"
           value={stats?.statistiques?.paiements_en_retard || 0}
           icon={AlertTriangle}
-          color="bg-red-500"
+          iconBg="bg-red-500"
         />
       </div>
 
-      {/* Solde */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+      {/* Solde Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-green-100">
-              <TrendingUp className="text-green-600" size={24} />
+            <div className="p-2 rounded-lg bg-green-50">
+              <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Entrées</p>
-              <p className="text-xl font-bold text-green-600">{stats?.statistiques?.total_paiements || 0} DH</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Entrées</p>
+              <p className="text-lg font-semibold text-green-600">{stats?.statistiques?.total_paiements || 0} DH</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-red-100">
-              <TrendingDown className="text-red-600" size={24} />
+            <div className="p-2 rounded-lg bg-red-50">
+              <TrendingDown className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Dépenses</p>
-              <p className="text-xl font-bold text-red-600">{stats?.statistiques?.total_depenses || 0} DH</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Dépenses</p>
+              <p className="text-lg font-semibold text-red-600">{stats?.statistiques?.total_depenses || 0} DH</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-blue-100">
-              <Wallet className="text-blue-600" size={24} />
+            <div className="p-2 rounded-lg bg-slate-100">
+              <Wallet className="h-5 w-5 text-slate-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Solde</p>
-              <p className={`text-xl font-bold ${(stats?.statistiques?.solde || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Solde</p>
+              <p className={`text-lg font-semibold ${(stats?.statistiques?.solde || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {stats?.statistiques?.solde || 0} DH
               </p>
             </div>
@@ -192,114 +200,120 @@ const Dashboard = () => {
       </div>
 
       {/* Graphique évolution */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold mb-4">Évolution mensuelle</h2>
-        <div className="h-80">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h2 className="text-sm font-medium text-slate-800 mb-4">Évolution mensuelle</h2>
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={evolution}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="nom_mois" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="paiements" stroke="#22c55e" name="Paiements" strokeWidth={2} />
-              <Line type="monotone" dataKey="depenses" stroke="#ef4444" name="Dépenses" strokeWidth={2} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="nom_mois" tick={{ fontSize: 12, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }} 
+              />
+              <Line type="monotone" dataKey="paiements" stroke="#0d9488" name="Paiements" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="depenses" stroke="#ef4444" name="Dépenses" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Filtres tableau */}
-      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-        <div className="flex flex-wrap gap-4">
-          <select
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Tous les types</option>
-            <option value="appartement">Appartements</option>
-            <option value="magasin">Magasins</option>
-          </select>
-          <select
-            value={filters.proprietaire_id}
-            onChange={(e) => setFilters({ ...filters, proprietaire_id: e.target.value })}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Tous les propriétaires</option>
-            {proprietaires.map((p) => (
-              <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>
-            ))}
-          </select>
-        </div>
+      <div className="flex flex-wrap gap-3">
+        <select
+          value={filters.type}
+          onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="">Tous les types</option>
+          <option value="appartement">Appartements</option>
+          <option value="magasin">Magasins</option>
+        </select>
+        <select
+          value={filters.proprietaire_id}
+          onChange={(e) => setFilters({ ...filters, proprietaire_id: e.target.value })}
+          className="px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="">Tous les propriétaires</option>
+          {proprietaires.map((p) => (
+            <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>
+          ))}
+        </select>
       </div>
 
       {/* Tableau des paiements */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <h2 className="text-lg font-semibold">Suivi des paiements {annee}</h2>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-medium text-slate-800">Suivi des paiements {annee}</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sticky left-0 bg-slate-50">
                   Bien
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
                   Propriétaire
                 </th>
                 {moisNoms.map((mois, index) => (
-                  <th key={index} className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th key={index} className="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wide">
                     {mois}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
                   Total
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-slate-100">
               {tableau?.tableau?.map((ligne) => (
-                <tr key={ligne.bien_id} className="hover:bg-gray-50">
+                <tr key={ligne.bien_id} className="hover:bg-slate-50/50">
                   <td className="px-4 py-3 whitespace-nowrap sticky left-0 bg-white">
-                    <div className="flex items-center">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        ligne.type === 'appartement' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        ligne.type === 'appartement' 
+                          ? 'bg-slate-100 text-slate-700' 
+                          : 'bg-teal-50 text-teal-700'
                       }`}>
                         {ligne.type === 'appartement' ? 'App' : 'Mag'}
                       </span>
-                      <span className="ml-2 font-medium">{ligne.numero}</span>
+                      <span className="font-medium text-slate-800">{ligne.numero}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                     {ligne.proprietaire}
                   </td>
                   {Object.values(ligne.mois).map((moisData, index) => (
                     <td key={index} className="px-2 py-3 text-center">
                       <div
-                        className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center ${getStatutColor(moisData.statut)}`}
+                        className={`w-7 h-7 mx-auto rounded-md border flex items-center justify-center ${getStatutClasses(moisData.statut)}`}
                         title={moisData.paye ? `Payé le ${moisData.date_paiement}` : 'Non payé'}
                       >
-                        {moisData.paye && <CheckCircle size={16} className="text-white" />}
+                        {getStatutIcon(moisData.statut, moisData.paye)}
                       </div>
                     </td>
                   ))}
-                  <td className="px-4 py-3 whitespace-nowrap text-right font-semibold">
+                  <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-slate-800">
                     {ligne.total_paye} DH
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-50">
+            <tfoot className="bg-slate-50 border-t border-slate-200">
               <tr>
-                <td colSpan="2" className="px-4 py-3 font-semibold">Total</td>
+                <td colSpan="2" className="px-4 py-3 font-medium text-slate-800">Total</td>
                 {Object.values(tableau?.totaux_par_mois || {}).map((total, index) => (
-                  <td key={index} className="px-2 py-3 text-center font-semibold text-sm">
+                  <td key={index} className="px-2 py-3 text-center font-medium text-slate-600 text-xs">
                     {total}
                   </td>
                 ))}
-                <td className="px-4 py-3 text-right font-bold text-lg text-blue-600">
+                <td className="px-4 py-3 text-right font-semibold text-teal-600">
                   {tableau?.total_general || 0} DH
                 </td>
               </tr>
@@ -309,17 +323,21 @@ const Dashboard = () => {
       </div>
 
       {/* Légende */}
-      <div className="flex items-center gap-6 text-sm text-gray-600">
+      <div className="flex items-center gap-6 text-xs text-slate-500">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-green-500"></div>
+          <div className="w-5 h-5 rounded-md bg-green-50 border border-green-200 flex items-center justify-center">
+            <Check className="h-3 w-3 text-green-600" />
+          </div>
           <span>Payé</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-red-500"></div>
+          <div className="w-5 h-5 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+            <span className="text-xs text-red-500">!</span>
+          </div>
           <span>En retard</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-gray-200"></div>
+          <div className="w-5 h-5 rounded-md bg-slate-50 border border-slate-200"></div>
           <span>Non payé</span>
         </div>
       </div>
