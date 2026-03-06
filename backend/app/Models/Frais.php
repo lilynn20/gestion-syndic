@@ -19,13 +19,67 @@ class Frais extends Model
         'montant',
         'date_frais',
         'paye',
+        'is_global',
+        'paid_by_biens',
     ];
 
     protected $casts = [
         'montant' => 'decimal:2',
         'date_frais' => 'date',
         'paye' => 'boolean',
+        'is_global' => 'boolean',
+        'paid_by_biens' => 'array',
     ];
+
+    /**
+     * Get the share amount for a global frais based on total number of biens
+     */
+    public function getShareAmountAttribute(): float
+    {
+        if (!$this->is_global) {
+            return $this->montant;
+        }
+        
+        $totalBiens = \App\Models\Bien::count();
+        if ($totalBiens === 0) {
+            return 0;
+        }
+        
+        return round($this->montant / $totalBiens, 2);
+    }
+
+    /**
+     * Check if a specific bien has paid their share of this global frais
+     */
+    public function hasBienPaid(int $bienId): bool
+    {
+        if (!$this->is_global) {
+            return $this->paye;
+        }
+        
+        $paidBiens = $this->paid_by_biens ?? [];
+        return in_array($bienId, $paidBiens);
+    }
+
+    /**
+     * Mark a bien as having paid their share
+     */
+    public function markBienAsPaid(int $bienId): void
+    {
+        $paidBiens = $this->paid_by_biens ?? [];
+        if (!in_array($bienId, $paidBiens)) {
+            $paidBiens[] = $bienId;
+            $this->paid_by_biens = $paidBiens;
+            $this->save();
+        }
+        
+        // Check if all biens have paid
+        $totalBiens = \App\Models\Bien::count();
+        if (count($paidBiens) >= $totalBiens) {
+            $this->paye = true;
+            $this->save();
+        }
+    }
 
     public function bien(): BelongsTo
     {

@@ -83,6 +83,7 @@ export const fraisService = {
   create: (data) => api.post('/frais', data),
   update: (id, data) => api.put(`/frais/${id}`, data),
   delete: (id) => api.delete(`/frais/${id}`),
+  getUnpaidGlobal: (bienId) => api.get('/frais-global-unpaid', { params: { bien_id: bienId } }),
 };
 
 // Dépenses

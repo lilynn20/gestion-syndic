@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { paiementService, bienService } from '../services/api';
+import { paiementService, bienService, fraisService } from '../services/api';
 import {
   Plus,
   Trash2,
@@ -29,6 +29,9 @@ const Paiements = () => {
     nombre_mois: 3,
   });
   const [error, setError] = useState('');
+  const [includeExtraFees, setIncludeExtraFees] = useState(false);
+  const [extraFeesData, setExtraFeesData] = useState({ data: [], total_share: 0 });
+  const [loadingExtraFees, setLoadingExtraFees] = useState(false);
 
   const moisNoms = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -70,8 +73,32 @@ const Paiements = () => {
       nombre_mois: 3,
     });
     setIsAnticipated(false);
+    setIncludeExtraFees(false);
+    setExtraFeesData({ data: [], total_share: 0 });
     setError('');
     setShowModal(true);
+  };
+
+  const loadExtraFees = async (bienId) => {
+    if (!bienId) {
+      setExtraFeesData({ data: [], total_share: 0 });
+      return;
+    }
+    setLoadingExtraFees(true);
+    try {
+      const response = await fraisService.getUnpaidGlobal(bienId);
+      setExtraFeesData(response.data);
+    } catch (error) {
+      console.error('Erreur chargement frais:', error);
+      setExtraFeesData({ data: [], total_share: 0 });
+    } finally {
+      setLoadingExtraFees(false);
+    }
+  };
+
+  const handleBienChange = (bienId) => {
+    setFormData({ ...formData, bien_id: bienId });
+    loadExtraFees(bienId);
   };
 
   const handleSubmit = async (e) => {
@@ -88,10 +115,14 @@ const Paiements = () => {
           nombre_mois: formData.nombre_mois,
           montant_par_mois: formData.montant,
           date_paiement: formData.date_paiement,
+          include_extra_fees: includeExtraFees,
         });
       } else {
         // Paiement simple
-        await paiementService.create(formData);
+        await paiementService.create({
+          ...formData,
+          include_extra_fees: includeExtraFees,
+        });
       }
       setShowModal(false);
       loadData();
@@ -327,7 +358,7 @@ const Paiements = () => {
                 <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
                 <select
                   value={formData.bien_id}
-                  onChange={(e) => setFormData({ ...formData, bien_id: e.target.value })}
+                  onChange={(e) => handleBienChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
                 >
@@ -339,6 +370,50 @@ const Paiements = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Checkbox frais supplémentaires */}
+              {formData.bien_id && extraFeesData.data.length > 0 && (
+                <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md cursor-pointer hover:bg-amber-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={includeExtraFees}
+                    onChange={(e) => setIncludeExtraFees(e.target.checked)}
+                    className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-amber-700">Inclure les frais supplémentaires</span>
+                    <p className="text-xs text-amber-600">
+                      {extraFeesData.data.length} frais non payé(s) - Part: {extraFeesData.total_share} DH
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {/* Détails frais supplémentaires */}
+              {includeExtraFees && extraFeesData.data.length > 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-100 rounded-md">
+                  <p className="text-xs font-medium text-amber-700 mb-2">Frais supplémentaires inclus:</p>
+                  <ul className="space-y-1">
+                    {extraFeesData.data.map((frais) => (
+                      <li key={frais.id} className="text-xs text-amber-600 flex justify-between">
+                        <span>{frais.description}</span>
+                        <span className="font-medium">{frais.share_amount} DH</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2 pt-2 border-t border-amber-200 flex justify-between text-sm font-medium text-amber-700">
+                    <span>Total frais supplémentaires:</span>
+                    <span>{extraFeesData.total_share} DH</span>
+                  </div>
+                </div>
+              )}
+
+              {loadingExtraFees && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-slate-300 border-t-teal-600"></div>
+                  Chargement des frais supplémentaires...
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -428,7 +503,19 @@ const Paiements = () => {
               {isAnticipated && (
                 <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
                   <p className="text-sm text-teal-700">
-                    <strong>Total à payer :</strong> {formData.nombre_mois * formData.montant} DH
+                    <strong>Total à payer :</strong> {formData.nombre_mois * formData.montant + (includeExtraFees ? extraFeesData.total_share : 0)} DH
+                    {includeExtraFees && extraFeesData.total_share > 0 && (
+                      <span className="text-xs ml-1">(dont {extraFeesData.total_share} DH de frais)</span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {!isAnticipated && includeExtraFees && extraFeesData.total_share > 0 && (
+                <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
+                  <p className="text-sm text-teal-700">
+                    <strong>Total à payer :</strong> {formData.montant + extraFeesData.total_share} DH
+                    <span className="text-xs ml-1">(dont {extraFeesData.total_share} DH de frais)</span>
                   </p>
                 </div>
               )}

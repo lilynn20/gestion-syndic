@@ -32,13 +32,21 @@ class FraisController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'bien_id' => 'required|exists:biens,id',
+            'bien_id' => 'nullable|exists:biens,id',
             'paiement_id' => 'nullable|exists:paiements,id',
             'description' => 'required|string|max:255',
             'montant' => 'required|numeric|min:0',
             'date_frais' => 'required|date',
             'paye' => 'nullable|boolean',
+            'is_global' => 'nullable|boolean',
         ]);
+
+        // If global, remove bien_id requirement
+        if ($request->boolean('is_global')) {
+            $validated['is_global'] = true;
+            $validated['bien_id'] = null;
+            $validated['paid_by_biens'] = [];
+        }
 
         $frais = Frais::create($validated);
 
@@ -98,6 +106,54 @@ class FraisController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Frais supprimé avec succès'
+        ]);
+    }
+
+    /**
+     * Get unpaid global frais for a specific bien
+     */
+    public function getUnpaidGlobalFrais(Request $request): JsonResponse
+    {
+        $bienId = $request->query('bien_id');
+        
+        if (!$bienId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'bien_id est requis'
+            ], 422);
+        }
+
+        // Get total number of biens for calculating share
+        $totalBiens = \App\Models\Bien::count();
+        
+        if ($totalBiens === 0) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'total_share' => 0
+            ]);
+        }
+
+        // Get global frais that this bien hasn't paid yet
+        $globalFrais = Frais::where('is_global', true)
+            ->where('paye', false)
+            ->get()
+            ->filter(function ($frais) use ($bienId) {
+                return !$frais->hasBienPaid((int)$bienId);
+            })
+            ->map(function ($frais) use ($totalBiens) {
+                $frais->share_amount = round($frais->montant / $totalBiens, 2);
+                return $frais;
+            })
+            ->values();
+
+        $totalShare = $globalFrais->sum('share_amount');
+
+        return response()->json([
+            'success' => true,
+            'data' => $globalFrais,
+            'total_share' => round($totalShare, 2),
+            'total_biens' => $totalBiens
         ]);
     }
 }

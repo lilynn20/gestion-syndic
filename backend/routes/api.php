@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Frais
     Route::apiResource('frais', FraisController::class);
+    Route::get('/frais-global-unpaid', [FraisController::class, 'getUnpaidGlobalFrais']);
 
     // Dépenses
     Route::apiResource('depenses', DepenseController::class);

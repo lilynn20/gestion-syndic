@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fraisService, bienService, paiementService } from '../services/api';
+import { fraisService, bienService } from '../services/api';
 import {
   Plus,
   Pencil,
@@ -25,6 +25,7 @@ const Frais = () => {
     montant: 0,
     date_frais: new Date().toISOString().split('T')[0],
     paye: false,
+    is_global: false,
   });
   const [error, setError] = useState('');
 
@@ -69,14 +70,17 @@ const Frais = () => {
     if (fraisItem) {
       setEditingId(fraisItem.id);
       setFormData({
-        bien_id: fraisItem.bien_id,
+        bien_id: fraisItem.bien_id || '',
         paiement_id: fraisItem.paiement_id || '',
         description: fraisItem.description,
         montant: fraisItem.montant,
         date_frais: fraisItem.date_frais.split('T')[0],
         paye: fraisItem.paye,
+        is_global: fraisItem.is_global || false,
       });
-      loadPaiements(fraisItem.bien_id);
+      if (fraisItem.bien_id) {
+        loadPaiements(fraisItem.bien_id);
+      }
     } else {
       setEditingId(null);
       setFormData({
@@ -86,6 +90,7 @@ const Frais = () => {
         montant: 0,
         date_frais: new Date().toISOString().split('T')[0],
         paye: false,
+        is_global: false,
       });
       setPaiements([]);
     }
@@ -220,18 +225,24 @@ const Frais = () => {
                 {frais.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          item.bien?.type === 'appartement' 
-                            ? 'bg-slate-100 text-slate-700' 
-                            : 'bg-teal-50 text-teal-700'
-                        }`}>
-                          {item.bien?.type === 'appartement' ? 'App' : 'Mag'} {item.bien?.numero}
+                      {item.is_global ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                          Global (partagé)
                         </span>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {item.bien?.proprietaire?.prenom} {item.bien?.proprietaire?.nom}
-                        </p>
-                      </div>
+                      ) : (
+                        <div>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                            item.bien?.type === 'appartement' 
+                              ? 'bg-slate-100 text-slate-700' 
+                              : 'bg-teal-50 text-teal-700'
+                          }`}>
+                            {item.bien?.type === 'appartement' ? 'App' : 'Mag'} {item.bien?.numero}
+                          </span>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {item.bien?.proprietaire?.prenom} {item.bien?.proprietaire?.nom}
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {item.description}
@@ -314,40 +325,63 @@ const Frais = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
-                <select
-                  value={formData.bien_id}
-                  onChange={(e) => handleBienChange(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
-                >
-                  <option value="">Sélectionner un bien</option>
-                  {biens.map((bien) => (
-                    <option key={bien.id} value={bien.id}>
-                      {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero} - {bien.proprietaire?.prenom} {bien.proprietaire?.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Checkbox frais global */}
+              <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md cursor-pointer hover:bg-amber-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={formData.is_global}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    is_global: e.target.checked,
+                    bien_id: e.target.checked ? '' : formData.bien_id,
+                    paiement_id: e.target.checked ? '' : formData.paiement_id,
+                  })}
+                  className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-amber-700">Frais global (partagé)</span>
+                  <p className="text-xs text-amber-600">Ce frais sera divisé entre tous les propriétaires</p>
+                </div>
+              </label>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Lié au paiement (optionnel)
-                </label>
-                <select
-                  value={formData.paiement_id}
-                  onChange={(e) => setFormData({ ...formData, paiement_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="">Aucun paiement lié</option>
-                  {paiements.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {moisNoms[p.mois - 1]} {p.annee} - {p.montant} DH
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!formData.is_global && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
+                  <select
+                    value={formData.bien_id}
+                    onChange={(e) => handleBienChange(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  >
+                    <option value="">Sélectionner un bien</option>
+                    {biens.map((bien) => (
+                      <option key={bien.id} value={bien.id}>
+                        {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero} - {bien.proprietaire?.prenom} {bien.proprietaire?.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!formData.is_global && formData.bien_id && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Lié au paiement (optionnel)
+                  </label>
+                  <select
+                    value={formData.paiement_id}
+                    onChange={(e) => setFormData({ ...formData, paiement_id: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="">Aucun paiement lié</option>
+                    {paiements.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {moisNoms[p.mois - 1]} {p.annee} - {p.montant} DH
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>

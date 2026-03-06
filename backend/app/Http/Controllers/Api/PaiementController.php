@@ -8,6 +8,7 @@ use App\Models\Bien;
 use App\Models\Recu;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Models\Frais;
 use Carbon\Carbon;
 
 class PaiementController extends Controller
@@ -49,6 +50,7 @@ class PaiementController extends Controller
             'montant' => 'required|numeric|min:0',
             'date_paiement' => 'required|date',
             'notes' => 'nullable|string',
+            'include_extra_fees' => 'nullable|boolean',
         ]);
 
         // Vérifier si un paiement existe déjà pour ce mois/année
@@ -80,20 +82,64 @@ class PaiementController extends Controller
         $validated['date_echeance'] = $dateEcheance;
         $validated['statut'] = $statut;
 
+        // Calculate extra fees amount if included
+        $extraFeesAmount = 0;
+        $extraFeesPaid = [];
+        
+        if ($request->boolean('include_extra_fees')) {
+            $bienId = $validated['bien_id'];
+            $totalBiens = Bien::count();
+            
+            if ($totalBiens > 0) {
+                // Get all unpaid global frais for this bien
+                $globalFrais = Frais::where('is_global', true)
+                    ->where('paye', false)
+                    ->get()
+                    ->filter(function ($frais) use ($bienId) {
+                        return !$frais->hasBienPaid((int)$bienId);
+                    });
+
+                foreach ($globalFrais as $frais) {
+                    $shareAmount = round($frais->montant / $totalBiens, 2);
+                    $extraFeesAmount += $shareAmount;
+                    $extraFeesPaid[] = [
+                        'frais_id' => $frais->id,
+                        'share_amount' => $shareAmount,
+                        'description' => $frais->description,
+                    ];
+                }
+            }
+        }
+
         $paiement = Paiement::create($validated);
 
-        // Générer automatiquement un reçu
+        // Mark global frais as paid by this bien
+        foreach ($extraFeesPaid as $fee) {
+            $frais = Frais::find($fee['frais_id']);
+            if ($frais) {
+                $frais->markBienAsPaid((int)$validated['bien_id']);
+            }
+        }
+
+        // Générer automatiquement un reçu with total including extra fees
+        $montantTotal = $paiement->montant + $extraFeesAmount;
+        
         Recu::create([
             'paiement_id' => $paiement->id,
             'numero_recu' => Recu::generateNumero(),
             'date_emission' => now(),
-            'montant_total' => $paiement->montant,
+            'montant_total' => $montantTotal,
         ]);
+
+        // Add extra fees info to response
+        $paiementData = $paiement->load(['bien.proprietaire', 'frais', 'recu']);
+        $paiementData->extra_fees_paid = $extraFeesPaid;
+        $paiementData->extra_fees_amount = $extraFeesAmount;
 
         return response()->json([
             'success' => true,
             'message' => 'Paiement enregistré avec succès',
-            'data' => $paiement->load(['bien.proprietaire', 'frais', 'recu'])
+            'data' => $paiementData
         ], 201);
     }
 
@@ -106,12 +152,43 @@ class PaiementController extends Controller
             'nombre_mois' => 'required|integer|min:1|max:24',
             'montant_par_mois' => 'required|numeric|min:0',
             'date_paiement' => 'required|date',
+            'include_extra_fees' => 'nullable|boolean',
         ]);
 
         $paiements = [];
         $mois = $validated['mois_debut'];
         $annee = $validated['annee_debut'];
         $datePaiement = Carbon::parse($validated['date_paiement']);
+        
+        // Handle extra fees for the first payment only
+        $extraFeesAmount = 0;
+        $extraFeesPaid = [];
+        
+        if ($request->boolean('include_extra_fees')) {
+            $bienId = $validated['bien_id'];
+            $totalBiens = Bien::count();
+            
+            if ($totalBiens > 0) {
+                $globalFrais = Frais::where('is_global', true)
+                    ->where('paye', false)
+                    ->get()
+                    ->filter(function ($frais) use ($bienId) {
+                        return !$frais->hasBienPaid((int)$bienId);
+                    });
+
+                foreach ($globalFrais as $frais) {
+                    $shareAmount = round($frais->montant / $totalBiens, 2);
+                    $extraFeesAmount += $shareAmount;
+                    $extraFeesPaid[] = [
+                        'frais_id' => $frais->id,
+                        'share_amount' => $shareAmount,
+                        'description' => $frais->description,
+                    ];
+                }
+            }
+        }
+
+        $isFirstPayment = true;
 
         for ($i = 0; $i < $validated['nombre_mois']; $i++) {
             // Vérifier si un paiement existe déjà
@@ -133,11 +210,26 @@ class PaiementController extends Controller
                     'statut' => 'avance',
                 ]);
 
+                // Add extra fees to the first payment's receipt
+                $montantTotal = $paiement->montant;
+                if ($isFirstPayment && $extraFeesAmount > 0) {
+                    $montantTotal += $extraFeesAmount;
+                    
+                    // Mark global frais as paid
+                    foreach ($extraFeesPaid as $fee) {
+                        $frais = Frais::find($fee['frais_id']);
+                        if ($frais) {
+                            $frais->markBienAsPaid((int)$validated['bien_id']);
+                        }
+                    }
+                    $isFirstPayment = false;
+                }
+
                 Recu::create([
                     'paiement_id' => $paiement->id,
                     'numero_recu' => Recu::generateNumero(),
                     'date_emission' => now(),
-                    'montant_total' => $paiement->montant,
+                    'montant_total' => $montantTotal,
                 ]);
 
                 $paiements[] = $paiement;
