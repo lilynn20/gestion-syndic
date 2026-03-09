@@ -323,7 +323,7 @@ const Paiements = () => {
       {/* Modal Paiement */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h2 className="text-sm font-medium text-slate-800">
                 {isAnticipated ? 'Paiement anticipé' : 'Nouveau paiement'}
@@ -333,9 +333,9 @@ const Paiements = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                <div className="md:col-span-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                   {error}
                 </div>
               )}
@@ -373,7 +373,7 @@ const Paiements = () => {
 
               {/* Checkbox frais supplémentaires */}
               {formData.bien_id && extraFeesData.data.length > 0 && (
-                <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md cursor-pointer hover:bg-amber-100 transition-colors">
+                <label className="md:col-span-2 flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md cursor-pointer hover:bg-amber-100 transition-colors">
                   <input
                     type="checkbox"
                     checked={includeExtraFees}
@@ -391,7 +391,7 @@ const Paiements = () => {
 
               {/* Détails frais supplémentaires */}
               {includeExtraFees && extraFeesData.data.length > 0 && (
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-md">
+                <div className="md:col-span-2 p-3 bg-amber-50 border border-amber-100 rounded-md">
                   <p className="text-xs font-medium text-amber-700 mb-2">Frais supplémentaires inclus:</p>
                   <ul className="space-y-1">
                     {extraFeesData.data.map((frais) => (
@@ -409,7 +409,7 @@ const Paiements = () => {
               )}
 
               {loadingExtraFees && (
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="md:col-span-2 flex items-center gap-2 text-xs text-slate-500">
                   <div className="animate-spin rounded-full h-3 w-3 border border-slate-300 border-t-teal-600"></div>
                   Chargement des frais supplémentaires...
                 </div>
@@ -488,20 +488,18 @@ const Paiements = () => {
                 </div>
               </div>
 
-              {!isAnticipated && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    rows="2"
-                  ></textarea>
-                </div>
-              )}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  rows="2"
+                ></textarea>
+              </div>
 
               {isAnticipated && (
-                <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
+                <div className="md:col-span-2 p-3 bg-teal-50 border border-teal-100 rounded-md">
                   <p className="text-sm text-teal-700">
                     <strong>Total à payer :</strong> {formData.nombre_mois * formData.montant + (includeExtraFees ? extraFeesData.total_share : 0)} DH
                     {includeExtraFees && extraFeesData.total_share > 0 && (
@@ -512,7 +510,7 @@ const Paiements = () => {
               )}
 
               {!isAnticipated && includeExtraFees && extraFeesData.total_share > 0 && (
-                <div className="p-3 bg-teal-50 border border-teal-100 rounded-md">
+                <div className="md:col-span-2 p-3 bg-teal-50 border border-teal-100 rounded-md">
                   <p className="text-sm text-teal-700">
                     <strong>Total à payer :</strong> {formData.montant + extraFeesData.total_share} DH
                     <span className="text-xs ml-1">(dont {extraFeesData.total_share} DH de frais)</span>
@@ -520,17 +518,19 @@ const Paiements = () => {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2">
+              <div className="md:col-span-2 flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors"
+                  style={{ minWidth: 120 }}
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 text-sm font-medium bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
+                  style={{ minWidth: 120 }}
                 >
                   Enregistrer
                 </button>
