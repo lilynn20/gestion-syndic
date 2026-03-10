@@ -14,7 +14,12 @@ class FraisController extends Controller
         $query = Frais::with(['bien.proprietaire', 'paiement']);
 
         if ($request->has('bien_id')) {
-            $query->where('bien_id', $request->bien_id);
+            $bienId = $request->bien_id;
+            $query->where(function($q) use ($bienId) {
+                $q->where('bien_id', $bienId)
+                  ->orWhere('is_global', true)
+                  ->orWhereJsonContains('bien_ids', (int)$bienId);
+            });
         }
 
         if ($request->has('paye')) {
@@ -53,17 +58,19 @@ class FraisController extends Controller
             case 'appartments':
                 $validated['is_global'] = false;
                 $validated['bien_id'] = null;
-                $validated['bien_ids'] = \App\Models\Bien::where('type', 'appartement')->pluck('id')->toArray();
+                $validated['bien_ids'] = \App\Models\Bien::where('type', 'appartement')->pluck('id')->values()->all();
                 break;
             case 'garages':
                 $validated['is_global'] = false;
                 $validated['bien_id'] = null;
-                $validated['bien_ids'] = \App\Models\Bien::where('type', 'garage')->pluck('id')->toArray();
+                // Use biens of type 'magasin' for garages
+                $validated['bien_ids'] = \App\Models\Bien::where('type', 'magasin')->pluck('id')->values()->all();
                 break;
             case 'custom':
                 $validated['is_global'] = false;
                 $validated['bien_id'] = null;
-                // bien_ids already validated
+                // Ensure bien_ids is always an array
+                $validated['bien_ids'] = isset($validated['bien_ids']) ? array_values($validated['bien_ids']) : [];
                 break;
             case 'single':
             default:
@@ -100,6 +107,7 @@ class FraisController extends Controller
 
     public function update(Request $request, Frais $frais): JsonResponse
     {
+
         $validated = $request->validate([
             'bien_id' => 'nullable|exists:biens,id',
             'paiement_id' => 'nullable|exists:paiements,id',
@@ -111,6 +119,40 @@ class FraisController extends Controller
             'bien_ids' => 'nullable|array',
             'bien_ids.*' => 'exists:biens,id'
         ]);
+
+        // Ensure bien_ids is set correctly for each scope
+        if (isset($validated['scope'])) {
+            switch ($validated['scope']) {
+                case 'global':
+                    $validated['is_global'] = true;
+                    $validated['bien_id'] = null;
+                    $validated['bien_ids'] = null;
+                    $validated['paid_by_biens'] = [];
+                    break;
+                case 'appartments':
+                    $validated['is_global'] = false;
+                    $validated['bien_id'] = null;
+                    $validated['bien_ids'] = \App\Models\Bien::where('type', 'appartement')->pluck('id')->values()->all();
+                    break;
+                case 'garages':
+                    $validated['is_global'] = false;
+                    $validated['bien_id'] = null;
+                    // Use biens of type 'magasin' for garages
+                    $validated['bien_ids'] = \App\Models\Bien::where('type', 'magasin')->pluck('id')->values()->all();
+                    break;
+                case 'custom':
+                    $validated['is_global'] = false;
+                    $validated['bien_id'] = null;
+                    $validated['bien_ids'] = isset($validated['bien_ids']) ? array_values($validated['bien_ids']) : [];
+                    break;
+                case 'single':
+                default:
+                    $validated['is_global'] = false;
+                    $validated['bien_ids'] = null;
+                    // bien_id must be set
+                    break;
+            }
+        }
 
         $frais->update($validated);
 

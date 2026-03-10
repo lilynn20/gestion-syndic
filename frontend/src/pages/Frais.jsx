@@ -264,19 +264,45 @@ useEffect(() => {
                         <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
                           Global (partagé)
                         </span>
-                      ) : (
+                      ) : item.scope === 'garages' ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-teal-50 text-teal-700">
+                          Mag (tous les magasins)
+                        </span>
+                      ) : item.scope === 'appartments' ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700">
+                          App (tous les appartements)
+                        </span>
+                      ) : item.bien_ids && Array.isArray(item.bien_ids) && item.bien_ids.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {item.bien_ids.map((id) => {
+                            const bien = biens.find(b => b.id === Number(id));
+                            if (!bien) return null;
+                            return (
+                              <span key={id} className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                bien.type === 'appartement'
+                                  ? 'bg-slate-100 text-slate-700'
+                                  : 'bg-teal-50 text-teal-700'
+                              }`}>
+                                {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero} - {bien.proprietaire?.prenom} {bien.proprietaire?.nom}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : item.bien ? (
                         <div>
                           <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            item.bien?.type === 'appartement' 
-                              ? 'bg-slate-100 text-slate-700' 
+                            item.bien.type === 'appartement'
+                              ? 'bg-slate-100 text-slate-700'
                               : 'bg-teal-50 text-teal-700'
                           }`}>
-                            {item.bien?.type === 'appartement' ? 'App' : 'Mag'} {item.bien?.numero}
+                            {item.bien.type === 'appartement' ? 'App' : 'Mag'} {item.bien.numero}
                           </span>
                           <p className="text-xs text-slate-500 mt-1">
-                            {item.bien?.proprietaire?.prenom} {item.bien?.proprietaire?.nom}
+                            {item.bien.proprietaire?.prenom} {item.bien.proprietaire?.nom}
                           </p>
                         </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
