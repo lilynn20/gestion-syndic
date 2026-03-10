@@ -75,10 +75,20 @@ class Frais extends Model
             $this->paid_by_biens = $paidBiens;
             $this->save();
         }
-        
-        // Check if all biens have paid
-        $totalBiens = \App\Models\Bien::count();
-        if (count($paidBiens) >= $totalBiens) {
+
+        if ($this->is_global) {
+            $totalBiens = \App\Models\Bien::count();
+            if (count($paidBiens) >= $totalBiens) {
+                $this->paye = true;
+                $this->save();
+            }
+        } elseif (!empty($this->bien_ids)) {
+            if (count($paidBiens) >= count($this->bien_ids)) {
+                $this->paye = true;
+                $this->save();
+            }
+        } else {
+            // Single scope: mark as paid immediately
             $this->paye = true;
             $this->save();
         }
