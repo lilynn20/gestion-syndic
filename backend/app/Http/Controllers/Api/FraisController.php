@@ -9,6 +9,44 @@ use Illuminate\Http\JsonResponse;
 
 class FraisController extends Controller
 {
+    public function getUnpaidFraisForBien(Request $request): JsonResponse
+    {
+        try {
+            $bienId = $request->query('bien_id');
+            if (!$bienId) {
+                return response()->json(['success' => false, 'message' => 'bien_id est requis'], 422);
+            }
+            $totalBiens = \App\Models\Bien::count();
+            $fraisList = \App\Models\Frais::where(function($q) use ($bienId) {
+                    $q->where('is_global', true)
+                      ->orWhereJsonContains('bien_ids', (int)$bienId)
+                      ->orWhere('bien_id', $bienId);
+                })
+                ->where('paye', false)
+                ->get()
+                ->filter(fn($frais) => !$frais->hasBienPaid((int)$bienId))
+                ->map(function($frais) use ($totalBiens) {
+                    $arr = $frais->toArray();
+                    if ($frais->is_global) {
+                        $arr['share_amount'] = $totalBiens > 0 ? round($frais->montant / $totalBiens, 2) : 0;
+                    } elseif (!empty($frais->bien_ids)) {
+                        $arr['share_amount'] = count($frais->bien_ids) > 0 ? round($frais->montant / count($frais->bien_ids), 2) : 0;
+                    } else {
+                        $arr['share_amount'] = $frais->montant;
+                    }
+                    return $arr;
+                })->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $fraisList,
+                'total_share' => round($fraisList->sum('share_amount'), 2),
+                'total_biens' => $totalBiens
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
     public function index(Request $request): JsonResponse
     {
         $query = Frais::with(['bien.proprietaire', 'paiement']);
