@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/paiements-statistiques', [PaiementController::class, 'statistiques']);
 
     // Frais
-    Route::apiResource('frais', FraisController::class);
+    Route::apiResource('frais', FraisController::class)->parameters(['frais' => 'frais']);
     Route::get('/frais-global-unpaid', [FraisController::class, 'getUnpaidGlobalFrais']);
 
     // Dépenses

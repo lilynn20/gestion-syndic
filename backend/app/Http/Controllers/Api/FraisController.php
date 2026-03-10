@@ -39,16 +39,41 @@ class FraisController extends Controller
             'date_frais' => 'required|date',
             'paye' => 'nullable|boolean',
             'is_global' => 'nullable|boolean',
+            'scope' => 'required|string|in:single,global,appartments,garages,custom',
+            'bien_ids' => 'nullable|array',
+            'bien_ids.*' => 'exists:biens,id'
         ]);
-
-        // If global, remove bien_id requirement
-        if ($request->boolean('is_global')) {
-            $validated['is_global'] = true;
-            $validated['bien_id'] = null;
-            $validated['paid_by_biens'] = [];
+        switch ($validated['scope']) {
+            case 'global':
+                $validated['is_global'] = true;
+                $validated['bien_id'] = null;
+                $validated['bien_ids'] = null;
+                $validated['paid_by_biens'] = [];
+                break;
+            case 'appartments':
+                $validated['is_global'] = false;
+                $validated['bien_id'] = null;
+                $validated['bien_ids'] = \App\Models\Bien::where('type', 'appartement')->pluck('id')->toArray();
+                break;
+            case 'garages':
+                $validated['is_global'] = false;
+                $validated['bien_id'] = null;
+                $validated['bien_ids'] = \App\Models\Bien::where('type', 'garage')->pluck('id')->toArray();
+                break;
+            case 'custom':
+                $validated['is_global'] = false;
+                $validated['bien_id'] = null;
+                // bien_ids already validated
+                break;
+            case 'single':
+            default:
+                $validated['is_global'] = false;
+                $validated['bien_ids'] = null;
+                // bien_id must be set
+                break;
         }
-
         $frais = Frais::create($validated);
+
 
         // Mettre à jour le reçu du paiement associé si existant
         if ($frais->paiement && $frais->paiement->recu) {
@@ -62,8 +87,9 @@ class FraisController extends Controller
             'message' => 'Frais créé avec succès',
             'data' => $frais->load(['bien.proprietaire', 'paiement'])
         ], 201);
+        
     }
-
+    
     public function show(Frais $frais): JsonResponse
     {
         return response()->json([
@@ -75,12 +101,15 @@ class FraisController extends Controller
     public function update(Request $request, Frais $frais): JsonResponse
     {
         $validated = $request->validate([
-            'bien_id' => 'sometimes|required|exists:biens,id',
+            'bien_id' => 'nullable|exists:biens,id',
             'paiement_id' => 'nullable|exists:paiements,id',
             'description' => 'sometimes|required|string|max:255',
             'montant' => 'sometimes|required|numeric|min:0',
             'date_frais' => 'sometimes|required|date',
             'paye' => 'nullable|boolean',
+            'scope' => 'sometimes|required|string|in:single,global,appartments,garages,custom',
+            'bien_ids' => 'nullable|array',
+            'bien_ids.*' => 'exists:biens,id'
         ]);
 
         $frais->update($validated);
@@ -97,15 +126,32 @@ class FraisController extends Controller
             'message' => 'Frais mis à jour avec succès',
             'data' => $frais->load(['bien.proprietaire', 'paiement'])
         ]);
+        
     }
 
     public function destroy(Frais $frais): JsonResponse
     {
-        $frais->delete();
+        // Debug: log route parameters and request data
+        \Log::info('DEBUG: Route parameters', request()->route()?->parameters() ?? []);
+        \Log::info('DEBUG: Request all()', request()->all());
+        \Log::info('Suppression frais demandée', [
+            'id' => $frais->id,
+            'is_global' => $frais->is_global,
+            'scope' => $frais->scope,
+            'bien_id' => $frais->bien_id,
+        ]);
+        $deleted = $frais->delete();
+        // Check if the frais still exists in the database
+        $stillExists = \App\Models\Frais::find($frais->id) !== null;
+        \Log::info('Résultat suppression frais', [
+            'id' => $frais->id,
+            'deleted' => $deleted,
+            'still_exists' => $stillExists,
+        ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Frais supprimé avec succès'
+            'success' => $deleted && !$stillExists,
+            'message' => !$stillExists ? 'Frais supprimé avec succès' : 'Échec de la suppression du frais (toujours présent en base)',
         ]);
     }
 

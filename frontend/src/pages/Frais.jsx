@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback} from 'react';
 import { fraisService, bienService } from '../services/api';
 import {
   Plus,
@@ -25,33 +25,34 @@ const Frais = () => {
     montant: 0,
     date_frais: new Date().toISOString().split('T')[0],
     paye: false,
-    is_global: false,
+    scope: 'single',
+      bien_ids: [],
   });
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, [filterBien, filterPaye]);
+  const loadData = useCallback(async () => {
+  setLoading(true);
+  try {
+    const params = {};
+    if (filterBien) params.bien_id = filterBien;
+    if (filterPaye !== '') params.paye = filterPaye;
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filterBien) params.bien_id = filterBien;
-      if (filterPaye !== '') params.paye = filterPaye;
+    const [fraisRes, biensRes] = await Promise.all([
+      fraisService.getAll(params),
+      bienService.getAll(),
+    ]);
+    setFrais(fraisRes.data.data);
+    setBiens(biensRes.data.data);
+  } catch (error) {
+    console.error('Erreur chargement données:', error);
+  } finally {
+    setLoading(false);
+  }
+}, [filterBien, filterPaye]);
 
-      const [fraisRes, biensRes] = await Promise.all([
-        fraisService.getAll(params),
-        bienService.getAll(),
-      ]);
-      setFrais(fraisRes.data.data);
-      setBiens(biensRes.data.data);
-    } catch (error) {
-      console.error('Erreur chargement données:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+useEffect(() => {
+  loadData();
+}, [loadData]);
 
   const loadPaiements = async (bienId) => {
     if (!bienId) {
@@ -76,7 +77,8 @@ const Frais = () => {
         montant: fraisItem.montant,
         date_frais: fraisItem.date_frais.split('T')[0],
         paye: fraisItem.paye,
-        is_global: fraisItem.is_global || false,
+        scope: fraisItem.scope || (fraisItem.is_global ? 'global' : 'single'),
+        bien_ids: fraisItem.bien_ids || [],
       });
       if (fraisItem.bien_id) {
         loadPaiements(fraisItem.bien_id);
@@ -90,7 +92,8 @@ const Frais = () => {
         montant: 0,
         date_frais: new Date().toISOString().split('T')[0],
         paye: false,
-        is_global: false,
+        scope: 'single',
+        bien_ids: [],
       });
       setPaiements([]);
     }
@@ -116,6 +119,15 @@ const Frais = () => {
     try {
       const data = { ...formData };
       if (!data.paiement_id) delete data.paiement_id;
+      // Clean up bien_id/bien_ids based on scope
+      if (data.scope === 'custom') {
+        data.bien_id = null;
+      } else if (data.scope === 'single') {
+        data.bien_ids = null;
+      } else {
+        data.bien_id = null;
+        data.bien_ids = null;
+      }
 
       if (editingId) {
         await fraisService.update(editingId, data);
@@ -125,17 +137,40 @@ const Frais = () => {
       closeModal();
       loadData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Une erreur est survenue');
+      // Log backend error for debugging
+      console.error('Erreur backend:', err.response?.data || err);
+      const msg = err.response?.data?.message || err.message || '';
+      // Laravel validation errors are usually in err.response.data.errors
+      if (err.response?.status === 422 || err.response?.data?.errors) {
+        setError('Veuillez remplir tous les champs obligatoires.');
+      } else if (
+        msg.includes('Unknown column') ||
+        msg.includes('SQLSTATE') ||
+        msg.includes('field is required') ||
+        msg.includes('required')
+      ) {
+        setError('Veuillez remplir tous les champs obligatoires.');
+      } else if (msg) {
+        setError(msg);
+      } else {
+        setError('Une erreur est survenue');
+      }
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ces frais ?')) {
+      console.log('Suppression frais id:', id);
       try {
-        await fraisService.delete(id);
-        loadData();
+        const res = await fraisService.delete(id);
+        if (res.data && res.data.success) {
+          loadData();
+        } else {
+          alert(res.data && res.data.message ? res.data.message : 'Erreur lors de la suppression.');
+        }
       } catch (error) {
         console.error('Erreur suppression:', error);
+        alert('Erreur lors de la suppression.');
       }
     }
   };
@@ -325,26 +360,25 @@ const Frais = () => {
                 </div>
               )}
 
-              {/* Checkbox frais global */}
-              <label className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md cursor-pointer hover:bg-amber-100 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={formData.is_global}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    is_global: e.target.checked,
-                    bien_id: e.target.checked ? '' : formData.bien_id,
-                    paiement_id: e.target.checked ? '' : formData.paiement_id,
-                  })}
-                  className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-amber-700">Frais global (partagé)</span>
-                  <p className="text-xs text-amber-600">Ce frais sera divisé entre tous les propriétaires</p>
-                </div>
-              </label>
+              {/* Scope selection */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Type de frais *</label>
+                <select
+                  value={formData.scope}
+                  onChange={e => setFormData({ ...formData, scope: e.target.value, bien_id: '', bien_ids: [] })}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                >
+                  <option value="global">Global (tous les biens)</option>
+                  <option value="appartments">Appartements uniquement</option>
+                  <option value="garages">Garages uniquement</option>
+                  <option value="custom">Sélection manuelle de biens</option>
+                  <option value="single">Un seul bien</option>
+                </select>
+              </div>
 
-              {!formData.is_global && (
+              {/* Bien selection for single */}
+              {formData.scope === 'single' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Bien *</label>
                   <select
@@ -363,7 +397,32 @@ const Frais = () => {
                 </div>
               )}
 
-              {!formData.is_global && formData.bien_id && (
+              {/* Bien multi-select for custom */}
+              {formData.scope === 'custom' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Biens concernés *</label>
+                  <select
+                    multiple
+                    value={formData.bien_ids}
+                    onChange={e => {
+                      const options = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                      setFormData({ ...formData, bien_ids: options });
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  >
+                    {biens.map((bien) => (
+                      <option key={bien.id} value={bien.id}>
+                        {bien.type === 'appartement' ? 'App' : 'Mag'} {bien.numero} - {bien.proprietaire?.prenom} {bien.proprietaire?.nom}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs biens.</p>
+                </div>
+              )}
+
+              {/* Paiement lié */}
+              {formData.scope === 'single' && formData.bien_id && (
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">
                     Lié au paiement (optionnel)
@@ -456,4 +515,4 @@ const Frais = () => {
   );
 };
 
-export default Frais;
+  export default Frais;

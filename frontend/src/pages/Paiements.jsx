@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { paiementService, bienService, fraisService } from '../services/api';
 import {
   Plus,
@@ -38,11 +38,7 @@ const Paiements = () => {
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
-  useEffect(() => {
-    loadData();
-  }, [filterBien, filterAnnee, filterMois]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => { 
     setLoading(true);
     try {
       const params = { annee: filterAnnee };
@@ -60,7 +56,11 @@ const Paiements = () => {
     } finally {
       setLoading(false);
     }
-  };
+    
+  }, [filterBien, filterAnnee, filterMois]);
+    useEffect(() => {
+      loadData();
+    }, [loadData]);
 
   const openModal = () => {
     setFormData({

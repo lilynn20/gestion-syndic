@@ -13,6 +13,8 @@ class Frais extends Model
     protected $table = 'frais';
 
     protected $fillable = [
+        'scope',
+        'bien_ids',
         'bien_id',
         'paiement_id',
         'description',
@@ -24,6 +26,7 @@ class Frais extends Model
     ];
 
     protected $casts = [
+        'bien_ids' => 'array',
         'montant' => 'decimal:2',
         'date_frais' => 'date',
         'paye' => 'boolean',
