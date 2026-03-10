@@ -7,8 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-  },
-  withCredentials: true,
+  }
 });
 
 // Intercepteur pour ajouter le token
@@ -84,6 +83,7 @@ export const fraisService = {
   update: (id, data) => api.put(`/frais/${id}`, data),
   delete: (id) => api.delete(`/frais/${id}`),
   getUnpaidGlobal: (bienId) => api.get('/frais-global-unpaid', { params: { bien_id: bienId } }),
+  getUnpaidForBien: (bienId) => api.get('/frais-unpaid-for-bien', { params: { bien_id: bienId } }),
 };
 
 // Dépenses

@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Add CORS middleware globally
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
+
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 abort(response()->json(['message' => 'Unauthenticated.'], 401));

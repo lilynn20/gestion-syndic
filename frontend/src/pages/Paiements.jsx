@@ -86,7 +86,7 @@ const Paiements = () => {
     }
     setLoadingExtraFees(true);
     try {
-      const response = await fraisService.getUnpaidGlobal(bienId);
+      const response = await fraisService.getUnpaidForBien(bienId);
       setExtraFeesData(response.data);
     } catch (error) {
       console.error('Erreur chargement frais:', error);

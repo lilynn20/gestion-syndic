@@ -89,18 +89,26 @@ class PaiementController extends Controller
         if ($request->boolean('include_extra_fees')) {
             $bienId = $validated['bien_id'];
             $totalBiens = Bien::count();
-            
             if ($totalBiens > 0) {
-                // Get all unpaid global frais for this bien
-                $globalFrais = Frais::where('is_global', true)
+                // Get all unpaid frais for this bien: global, bien_ids, bien_id
+                $fraisList = Frais::where(function($q) use ($bienId) {
+                        $q->where('is_global', true)
+                          ->orWhereJsonContains('bien_ids', (int)$bienId)
+                          ->orWhere('bien_id', $bienId);
+                    })
                     ->where('paye', false)
                     ->get()
                     ->filter(function ($frais) use ($bienId) {
                         return !$frais->hasBienPaid((int)$bienId);
                     });
 
-                foreach ($globalFrais as $frais) {
-                    $shareAmount = round($frais->montant / $totalBiens, 2);
+                foreach ($fraisList as $frais) {
+                    // For global, split by all biens; for others, use full amount
+                    if ($frais->is_global) {
+                        $shareAmount = round($frais->montant / $totalBiens, 2);
+                    } else {
+                        $shareAmount = $frais->montant;
+                    }
                     $extraFeesAmount += $shareAmount;
                     $extraFeesPaid[] = [
                         'frais_id' => $frais->id,

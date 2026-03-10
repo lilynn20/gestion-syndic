@@ -47,9 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/paiements/multiple', [PaiementController::class, 'storeMultiple']);
     Route::get('/paiements-statistiques', [PaiementController::class, 'statistiques']);
 
-    // Frais
-    Route::apiResource('frais', FraisController::class)->parameters(['frais' => 'frais']);
-    Route::get('/frais-global-unpaid', [FraisController::class, 'getUnpaidGlobalFrais']);
+    // Frais (moved outside for public access)
 
     // Dépenses
     Route::apiResource('depenses', DepenseController::class);
@@ -77,3 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Route publique pour télécharger le PDF (avec token en query param)
 Route::get('/recus/{recu}/download', [RecuController::class, 'downloadPdf'])->name('recus.download');
+
+// Frais public routes
+Route::apiResource('frais', FraisController::class)->parameters(['frais' => 'frais']);
+Route::get('/frais-global-unpaid', [FraisController::class, 'getUnpaidGlobalFrais']);
+Route::get('/frais-unpaid-for-bien', [FraisController::class, 'getUnpaidFraisForBien']);
