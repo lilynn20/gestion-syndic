@@ -73,6 +73,7 @@ export const paiementService = {
   update: (id, data) => api.put(`/paiements/${id}`, data),
   delete: (id) => api.delete(`/paiements/${id}`),
   getStatistiques: (params) => api.get('/paiements-statistiques', { params }),
+  exportExcel: () => api.get('/paiements-export', { responseType: 'blob' }),
 };
 
 // Frais
@@ -96,6 +97,7 @@ export const depenseService = {
   delete: (id) => api.delete(`/depenses/${id}`),
   getStatistiques: (params) => api.get('/depenses-statistiques', { params }),
   getCategories: () => api.get('/depenses-categories'),
+  exportExcel: () => api.get('/depenses-export', { responseType: 'blob' }),
 };
 
 // Reçus

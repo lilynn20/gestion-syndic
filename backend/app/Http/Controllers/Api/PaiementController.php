@@ -333,4 +333,12 @@ class PaiementController extends Controller
             ]
         ]);
     }
+    /**
+     * Export all paiements to Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        $fileName = 'paiements_' . now()->format('Ymd_His') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PaiementsExport, $fileName);
+    }
 }

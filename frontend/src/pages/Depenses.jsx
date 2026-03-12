@@ -1,3 +1,24 @@
+  // Excel export handler
+  const handleExportExcel = async () => {
+    try {
+      const response = await depenseService.exportExcel();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      // Try to extract filename from headers, fallback to default
+      const disposition = response.headers['content-disposition'];
+      let filename = 'depenses_export.xlsx';
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        filename = disposition.split('filename=')[1].replace(/['"]/g, '').trim();
+      }
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Erreur lors de l\'export Excel');
+    }
+  };
 import { useState, useEffect } from 'react';
 import { depenseService } from '../services/api';
 import {
@@ -202,6 +223,13 @@ const Depenses = () => {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Exporter Excel
+        </button>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input

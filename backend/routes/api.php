@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('paiements', PaiementController::class);
     Route::post('/paiements/multiple', [PaiementController::class, 'storeMultiple']);
     Route::get('/paiements-statistiques', [PaiementController::class, 'statistiques']);
+    Route::get('/paiements-export', [PaiementController::class, 'exportExcel'])->name('paiements.export');
 
     // Frais (moved outside for public access)
 
@@ -53,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('depenses', DepenseController::class);
     Route::get('/depenses-statistiques', [DepenseController::class, 'statistiques']);
     Route::get('/depenses-categories', [DepenseController::class, 'categories']);
+    Route::get('/depenses-export', [\App\Http\Controllers\Api\DepenseExportController::class, 'exportExcel'])->name('depenses.export');
 
     // Reçus
     Route::get('/recus', [RecuController::class, 'index']);
