@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Frais;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Exports\FraisExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FraisController extends Controller
 {
@@ -281,5 +283,14 @@ class FraisController extends Controller
             'total_share' => round($totalShare, 2),
             'total_biens' => $totalBiens
         ]);
+    }
+
+    /**
+     * Export all frais to Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        $fileName = 'frais_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new FraisExport, $fileName);
     }
 }

@@ -84,6 +84,7 @@ export const fraisService = {
   delete: (id) => api.delete(`/frais/${id}`),
   getUnpaidGlobal: (bienId) => api.get('/frais-global-unpaid', { params: { bien_id: bienId } }),
   getUnpaidForBien: (bienId) => api.get('/frais-unpaid-for-bien', { params: { bien_id: bienId } }),
+  exportExcel: () => api.get('/frais-export', { responseType: 'blob' }),
 };
 
 // Dépenses

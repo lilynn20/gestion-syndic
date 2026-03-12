@@ -7,6 +7,7 @@ import {
   X,
   CheckCircle,
   XCircle,
+  Download,
 } from 'lucide-react';
 
 const Frais = () => {
@@ -180,6 +181,28 @@ useEffect(() => {
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
+  // Excel export handler
+  const handleExportExcel = async () => {
+    try {
+      const response = await fraisService.exportExcel();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      // Try to extract filename from headers, fallback to default
+      const disposition = response.headers['content-disposition'];
+      let filename = 'frais_export.xlsx';
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        filename = disposition.split('filename=')[1].replace(/['"]/g, '').trim();
+      }
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Erreur lors de l\'export Excel');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -220,6 +243,13 @@ useEffect(() => {
           <option value="true">Payés</option>
           <option value="false">Non payés</option>
         </select>
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Exporter Excel
+        </button>
       </div>
 
       {/* Liste */}

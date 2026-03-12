@@ -80,3 +80,4 @@ Route::get('/recus/{recu}/download', [RecuController::class, 'downloadPdf'])->na
 Route::apiResource('frais', FraisController::class)->parameters(['frais' => 'frais']);
 Route::get('/frais-global-unpaid', [FraisController::class, 'getUnpaidGlobalFrais']);
 Route::get('/frais-unpaid-for-bien', [FraisController::class, 'getUnpaidFraisForBien']);
+Route::get('/frais-export', [FraisController::class, 'exportExcel'])->name('frais.export');
