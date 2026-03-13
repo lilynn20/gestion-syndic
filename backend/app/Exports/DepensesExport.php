@@ -11,9 +11,26 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class DepensesExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
+    protected $filters;
+
+    public function __construct($filters = [])
+    {
+        $this->filters = $filters;
+    }
+
     public function collection()
     {
-        return Depense::orderByDesc('date_depense')->get();
+        $query = Depense::query();
+        if (!empty($this->filters['categorie'])) {
+            $query->where('categorie', $this->filters['categorie']);
+        }
+        if (!empty($this->filters['date_debut']) && !empty($this->filters['date_fin'])) {
+            $query->whereBetween('date_depense', [$this->filters['date_debut'], $this->filters['date_fin']]);
+        }
+        if (!empty($this->filters['search'])) {
+            $query->where('description', 'like', "%{$this->filters['search']}%");
+        }
+        return $query->orderByDesc('date_depense')->get();
     }
 
     public function map($depense): array

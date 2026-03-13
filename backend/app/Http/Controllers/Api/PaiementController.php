@@ -338,7 +338,8 @@ class PaiementController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        $filters = $request->only(['bien_id', 'annee', 'mois', 'statut']);
         $fileName = 'paiements_' . now()->format('Ymd_His') . '.xlsx';
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PaiementsExport, $fileName);
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PaiementsExport($filters), $fileName);
     }
 }

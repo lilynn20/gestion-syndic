@@ -11,11 +11,29 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class PaiementsExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
+    protected $filters;
+
+    public function __construct($filters = [])
+    {
+        $this->filters = $filters;
+    }
+
     public function collection()
     {
-        return Paiement::with(['bien.proprietaire'])
-            ->orderByDesc('date_paiement')
-            ->get();
+        $query = Paiement::with(['bien.proprietaire']);
+        if (!empty($this->filters['bien_id'])) {
+            $query->where('bien_id', $this->filters['bien_id']);
+        }
+        if (!empty($this->filters['annee'])) {
+            $query->where('annee', $this->filters['annee']);
+        }
+        if (!empty($this->filters['mois'])) {
+            $query->where('mois', $this->filters['mois']);
+        }
+        if (!empty($this->filters['statut'])) {
+            $query->where('statut', $this->filters['statut']);
+        }
+        return $query->orderByDesc('date_paiement')->get();
     }
 
     public function map($paiement): array

@@ -1,24 +1,7 @@
-  // Excel export handler
-  const handleExportExcel = async () => {
-    try {
-      const response = await paiementService.exportExcel();
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      // Try to extract filename from headers, fallback to default
-      const disposition = response.headers['content-disposition'];
-      let filename = 'paiements_export.xlsx';
-      if (disposition && disposition.indexOf('filename=') !== -1) {
-        filename = disposition.split('filename=')[1].replace(/['"]/g, '').trim();
-      }
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch {
-      alert('Erreur lors de l\'export Excel');
-    }
-  };
+
+// ...existing code...
+
+
 import { useState, useEffect, useCallback } from 'react';
 import { paiementService, bienService, fraisService } from '../services/api';
 import {
@@ -79,9 +62,9 @@ const Paiements = () => {
     }
     
   }, [filterBien, filterAnnee, filterMois]);
-    useEffect(() => {
-      loadData();
-    }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openModal = () => {
     setFormData({
@@ -185,6 +168,26 @@ const Paiements = () => {
         );
       default:
         return null;
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const params = {
+        bien_id: filterBien || undefined,
+        annee: filterAnnee,
+        mois: filterMois || undefined,
+      };
+      const response = await paiementService.exportExcel(params);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'paiements.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch {
+      alert('Erreur lors de l\'export Excel');
     }
   };
 

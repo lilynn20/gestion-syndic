@@ -16,7 +16,8 @@ class DepenseExportController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        $filters = $request->only(['categorie', 'date_debut', 'date_fin', 'search']);
         $fileName = 'depenses_' . now()->format('Ymd_His') . '.xlsx';
-        return Excel::download(new DepensesExport, $fileName);
+        return Excel::download(new DepensesExport($filters), $fileName);
     }
 }

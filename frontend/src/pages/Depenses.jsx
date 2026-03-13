@@ -1,7 +1,11 @@
   // Excel export handler
   const handleExportExcel = async () => {
     try {
-      const response = await depenseService.exportExcel();
+      const params = {};
+      if (search) params.search = search;
+      if (filterCategorie) params.categorie = filterCategorie;
+      // Optionally add date_debut/date_fin if you add date filters in UI
+      const response = await depenseService.exportExcel(params);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
