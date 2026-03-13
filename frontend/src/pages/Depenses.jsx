@@ -1,29 +1,4 @@
-  // Excel export handler
-  const handleExportExcel = async () => {
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (filterCategorie) params.categorie = filterCategorie;
-      // Optionally add date_debut/date_fin if you add date filters in UI
-      const response = await depenseService.exportExcel(params);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      // Try to extract filename from headers, fallback to default
-      const disposition = response.headers['content-disposition'];
-      let filename = 'depenses_export.xlsx';
-      if (disposition && disposition.indexOf('filename=') !== -1) {
-        filename = disposition.split('filename=')[1].replace(/['"]/g, '').trim();
-      }
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch {
-      alert('Erreur lors de l\'export Excel');
-    }
-  };
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { depenseService } from '../services/api';
 import {
   Plus,
@@ -33,6 +8,7 @@ import {
   Wallet,
   Search,
   TrendingDown,
+  Download,
 } from 'lucide-react';
 import {
   PieChart,
@@ -42,9 +18,14 @@ import {
   Tooltip,
 } from 'recharts';
 
-const COLORS = ['#0f766e', '#334155', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'];
+const COLORS = [
+  '#0f766e', '#334155', '#64748b', '#94a3b8',
+  '#cbd5e1', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#10b981', '#3b82f6', '#f97316'
+];
 
 const Depenses = () => {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [depenses, setDepenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [statistiques, setStatistiques] = useState(null);
@@ -61,11 +42,7 @@ const Depenses = () => {
   });
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, [search, filterCategorie]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
@@ -75,7 +52,7 @@ const Depenses = () => {
       const [depensesRes, categoriesRes, statsRes] = await Promise.all([
         depenseService.getAll(params),
         depenseService.getCategories(),
-        depenseService.getStatistiques({ annee: new Date().getFullYear() }),
+        depenseService.getStatistiques({ annee: selectedYear }),
       ]);
       setDepenses(depensesRes.data.data);
       setCategories(categoriesRes.data.data);
@@ -85,7 +62,11 @@ const Depenses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, filterCategorie, selectedYear]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openModal = (depense = null) => {
     if (depense) {
@@ -118,11 +99,9 @@ const Depenses = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     try {
       const data = { ...formData };
       if (!data.categorie) delete data.categorie;
-
       if (editingId) {
         await depenseService.update(editingId, data);
       } else {
@@ -146,11 +125,33 @@ const Depenses = () => {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      const params = {};
+      if (search) params.search = search;
+      if (filterCategorie) params.categorie = filterCategorie;
+      const response = await depenseService.exportExcel(params);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const disposition = response.headers['content-disposition'];
+      let filename = 'depenses_export.xlsx';
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        filename = disposition.split('filename=')[1].replace(/['"]/g, '').trim();
+      }
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Erreur lors de l\'export Excel');
+    }
+  };
+
   const pieData = statistiques?.depenses_par_categorie?.map((cat) => ({
     name: cat.categorie || 'Non catégorisé',
     value: parseFloat(cat.total),
   })) || [];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -197,32 +198,39 @@ const Depenses = () => {
           </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <h3 className="text-xs text-slate-500 mb-2">Par catégorie</h3>
-          {pieData.length > 0 ? (
-            <div className="h-24">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={25}
-                    outerRadius={40}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value} DH`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p className="text-slate-400 text-sm">Aucune donnée</p>
-          )}
-        </div>
+  <h3 className="text-xs text-slate-500 mb-2">Par catégorie</h3>
+  <div className="flex items-center justify-between mb-2">
+  <select
+    value={selectedYear}
+    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+    className="text-xs border border-slate-200 rounded px-1 py-0.5 text-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
+  >
+    {[2023, 2024, 2025, 2026].map((year) => (
+      <option key={year} value={year}>{year}</option>
+    ))}
+  </select>
+</div>
+  {pieData.length > 0 ? (
+    <PieChart width={250} height={200}>
+      <Pie
+        data={pieData}
+        cx="50%"
+        cy="50%"
+        innerRadius={40}
+        outerRadius={70}
+        paddingAngle={2}
+        dataKey="value"
+      >
+        {pieData.map((entry, index) => (
+          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+        ))}
+      </Pie>
+      <Tooltip formatter={(value) => `${value} DH`} />
+    </PieChart>
+  ) : (
+    <p className="text-slate-400 text-sm">Aucune donnée</p>
+  )}
+</div>
       </div>
 
       {/* Filters */}
@@ -323,7 +331,6 @@ const Depenses = () => {
                     </td>
                   </tr>
                 ))}
-
                 {depenses.length === 0 && (
                   <tr>
                     <td colSpan="5" className="px-4 py-12 text-center text-slate-500 text-sm">
@@ -349,14 +356,12 @@ const Depenses = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                   {error}
                 </div>
               )}
-
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                 <input
@@ -368,7 +373,6 @@ const Depenses = () => {
                   required
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Catégorie</label>
                 <input
@@ -385,7 +389,6 @@ const Depenses = () => {
                   ))}
                 </datalist>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Montant (DH) *</label>
@@ -410,7 +413,6 @@ const Depenses = () => {
                   />
                 </div>
               </div>
-
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
