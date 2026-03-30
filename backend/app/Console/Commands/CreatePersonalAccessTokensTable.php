@@ -8,25 +8,46 @@ use Illuminate\Database\Schema\Blueprint;
 
 class CreatePersonalAccessTokensTable extends Command
 {
-    protected $signature = 'fix:pat';
+    protected $signature = 'reminders:send {--dry-run}';
     protected $description = 'Create personal_access_tokens table';
 
-    public function handle()
-    {
-        if (!Schema::hasTable('personal_access_tokens')) {
-            Schema::create('personal_access_tokens', function (Blueprint $table) {
-                $table->id();
-                $table->morphs('tokenable');
-                $table->string('name');
-                $table->string('token', 64)->unique();
-                $table->text('abilities')->nullable();
-                $table->timestamp('last_used_at')->nullable();
-                $table->timestamp('expires_at')->nullable();
-                $table->timestamps();
-            });
-            $this->info('Table created successfully.');
-        } else {
-            $this->info('Table already exists.');
+    public function handle(WhatsAppService $whatsapp): void
+{
+    $dryRun = $this->option('dry-run');
+
+    $today = Carbon::today();
+    $threeDaysLater = $today->copy()->addDays(3);
+
+    $paiements = Paiement::with(['bien.proprietaire'])
+        ->where('statut', 'en_attente')
+        ->whereBetween('date_echeance', [$today, $threeDaysLater])
+        ->get();
+
+    $this->info("Found {$paiements->count()} payments due soon.");
+
+    foreach ($paiements as $paiement) {
+        $proprietaire = $paiement->bien?->proprietaire;
+
+        if (!$proprietaire || !$proprietaire->telephone) {
+            $this->warn("Skipping #{$paiement->id} - no phone number.");
+            continue;
+        }
+
+        if ($dryRun) {
+            $this->info("[DRY RUN] Would send to {$proprietaire->full_name} ({$proprietaire->telephone})");
+            continue;
+        }
+
+        $sent = $whatsapp->sendReminder(
+            $proprietaire->telephone,
+            $proprietaire->full_name,
+            $paiement->mois_nom . ' ' . $paiement->annee,
+            $paiement->montant
+        );
+
+        if ($sent) {
+            $this->info("✓ Sent to {$proprietaire->full_name}");
+            }
         }
     }
 }
